@@ -20,16 +20,18 @@
 
 namespace gwpsan SAN_LOCAL {
 
+// Copies `size` bytes from `src` to `dst`; if the copy was completed, returns
+// true, false if an access fault occurred during the copy.
 bool NonFailingMemcpy(void* dst, const void* src, uptr size);
 
 inline bool NonFailingLoad(Addr addr, ByteSize size, void* dst) {
-  return NonFailingMemcpy(dst, reinterpret_cast<void*>(Bytes(addr)),
-                          Bytes(size));
+  auto* src = reinterpret_cast<void*>(Bytes(addr));
+  return NonFailingMemcpy(dst, src, Bytes(size));
 }
 
 inline bool NonFailingStore(Addr addr, ByteSize size, const void* src) {
-  return NonFailingMemcpy(reinterpret_cast<void*>(Bytes(addr)), src,
-                          Bytes(size));
+  auto* dst = reinterpret_cast<void*>(Bytes(addr));
+  return NonFailingMemcpy(dst, src, Bytes(size));
 }
 
 bool InitNonFailing();
