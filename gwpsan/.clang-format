@@ -1,0 +1,11 @@
+BasedOnStyle: Google
+DerivePointerAlignment: false
+PointerAlignment: Left
+IndentCaseLabels: false
+AllowShortBlocksOnASingleLine: Empty
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+BreakConstructorInitializersBeforeComma: true
+AlignArrayOfStructures: Left

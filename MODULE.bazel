@@ -1,0 +1,43 @@
+# Copyright 2024 The GWPSan Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module(name = "gwpsan")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+bazel_dep(name = "abseil-cpp", version = "20240116.0", repo_name = "com_google_absl")
+bazel_dep(name = "bazel_skylib", version = "1.5.0")
+bazel_dep(name = "googletest", version = "1.14.0")
+bazel_dep(name = "google_benchmark", version = "1.8.3")
+bazel_dep(name = "re2", version = "2024-02-01")
+bazel_dep(name = "rules_license", version = "0.0.7")
+bazel_dep(name = "rules_foreign_cc", version = "0.10.1")
+
+# -------- Non-Bazel Archives -------- #
+
+_ALL_CONTENT = """\
+filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+"""
+
+http_archive(
+    name = "dynamorio",
+    build_file_content = _ALL_CONTENT,
+    strip_prefix = "dynamorio-cronbuild-10.0.19678",
+    url = "https://github.com/DynamoRIO/dynamorio/archive/refs/tags/cronbuild-10.0.19678.tar.gz",
+    sha256 = "9153ed83277c4bbea393007643967b442f2b0b643bac5e38d1e85a3f9abdedb8",
+)

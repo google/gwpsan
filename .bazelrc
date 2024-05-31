@@ -1,0 +1,53 @@
+# GWPSan depends on Clang. Currently no GCC support is planned.
+build --config=clang --config=libc++
+build --cxxopt=-std=c++20
+build --cxxopt=-Wno-mismatched-tags           # Don't care about Microsoft ABI
+build --copt=--system-header-prefix=external/ # Do not warn in dependencies
+
+# Common flags for Clang
+build:clang --action_env=BAZEL_COMPILER=clang
+build:clang --action_env=CC=clang --action_env=CXX=clang++
+build:clang --linkopt=-fuse-ld=lld
+
+# libc++
+build:libc++ --action_env=CXXFLAGS=-stdlib=libc++
+build:libc++ --action_env=LDFLAGS=-stdlib=libc++
+build:libc++ --action_env=BAZEL_CXXOPTS=-stdlib=libc++
+build:libc++ --action_env=BAZEL_LINKOPTS=-lc++:-lm
+
+# x86-64: --config=x86_64
+build:x86_64 --copt=-mcx16  # We rely on 16-byte atomics
+build:x86_64 --copt=-mcrc32 # Need CRC32 builtins
+
+# Developer/CI config with more compiler warnings: --config=dev
+build:dev --copt=-Wall
+build:dev --copt=-Werror
+
+# ASan: --config=asan
+build:asan --//gwpsan:sanitizer=asan
+build:asan --copt=-fsanitize=address
+build:asan --copt=-fsanitize-address-use-after-scope
+build:asan --copt=-fsanitize-address-use-after-return=runtime
+build:asan --copt=-DADDRESS_SANITIZER
+build:asan --linkopt=-fsanitize=address
+build:asan --cc_output_directory_tag=asan
+
+# MSan: --config=msan (Note: need MSan'ified stdlibs!)
+build:msan --//gwpsan:sanitizer=msan
+build:msan --copt=-fsanitize=memory
+build:msan --copt=-fsanitize-memory-track-origins
+build:msan --copt=-DMEMORY_SANITIZER
+build:msan --linkopt=-fsanitize=memory
+build:msan --cc_output_directory_tag=msan
+
+# ASan-enabled fuzzer: --config=asan-libfuzzer
+build:asan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine=@rules_fuzzing//fuzzing/engines:libfuzzer
+build:asan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine_instrumentation=libfuzzer
+build:asan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine_sanitizer=asan
+build:asan-libfuzzer --cc_output_directory_tag=asan-libfuzzer
+
+# MSan-enabled fuzzer: --config=msan-libfuzzer
+build:msan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine=@rules_fuzzing//fuzzing/engines:libfuzzer
+build:msan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine_instrumentation=libfuzzer
+build:msan-libfuzzer --@rules_fuzzing//fuzzing:cc_engine_sanitizer=msan
+build:msan-libfuzzer --cc_output_directory_tag=msan-libfuzzer

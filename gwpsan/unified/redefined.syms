@@ -1,0 +1,10 @@
+memset gwpsan_memset
+memcpy gwpsan_memcpy
+gwpsan_real_memset memset
+gwpsan_real_memcpy memcpy
+__udivmoddi4 gwpsan_udivmoddi4
+__udivmodsi4 gwpsan_udivmodsi4
+__udivmodti4 gwpsan_udivmodti4
+__udivdi3 gwpsan_udivdi3
+__udivsi3 gwpsan_udivsi3
+__udivti3 gwpsan_udivti3
