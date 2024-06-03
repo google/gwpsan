@@ -18,6 +18,7 @@
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/log.h"
+#include "gwpsan/base/sanitizer.h"
 #include "gwpsan/base/signal.h"
 #include "gwpsan/base/synchronization.h"
 
@@ -47,7 +48,6 @@ class SignalHandler final
 
   friend SynchronizedSingleton<SignalHandler<kSig>>::Singleton;
 };
-}  // namespace
 
 // We must not trigger SIGSEGV/SIGBUS when emulate user accesses because
 // we may mis-calcualte the address due to a bug in our code, or a race,
@@ -58,7 +58,7 @@ class SignalHandler final
 // It may also cause issues with sandboxes (however if perf_event_open
 // is not permitted, then it does not matter).
 //
-// MSan may need a NonFailingMemcpy that does not trigger our breakpoints.
+// LMSan may need a NonFailingMemcpy() that does not trigger our breakpoints.
 // But somehow it's not a problem so far. If this becomes a problem,
 // we can either handle such breakpoints specially in the BreakManager,
 // or switch breakpoints to write-only while handling signals
@@ -67,8 +67,8 @@ class SignalHandler final
 // Note: we need to disable sanitizer instrumentation because the function
 // must not do calls and because sanitizer instrumentation will try to access
 // shadow of shadow while we are emulating sanitizer shadow accesses.
-SAN_NOINSTR_BRITTLE bool NonFailingMemcpy(void* dst, const void* src,
-                                          uptr size) {
+SAN_NOINSTR_BRITTLE bool NonFailingMemcpyImpl(void* dst, const void* src,
+                                              uptr size) {
   // Tread carefully: If a signal is raised, the handler will set PC to the
   // fail_restore label's address. This means we must not call any functions
   // since SP would be restored to the wrong frame.
@@ -89,6 +89,14 @@ SAN_NOINSTR_BRITTLE bool NonFailingMemcpy(void* dst, const void* src,
 fail_restore:
   SAN_BARRIER();
   return false;
+}
+}  // namespace
+
+bool NonFailingMemcpy(void* dst, const void* src, uptr size) {
+  if (!NonFailingMemcpyImpl(dst, src, size))
+    return false;
+  MSAN_UNPOISON_MEMORY_REGION(dst, size);
+  return true;
 }
 
 bool InitNonFailing() {
