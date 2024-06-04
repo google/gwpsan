@@ -55,8 +55,10 @@ struct DisallowExternalFunc {
       unavailable("Cannot use " #name "() directly - use SAN_LIBCALL(" #name \
                   "(...)) (or ::" #name " for non-calls)")));
 #include "gwpsan/base/stdlib_disallow.inc"
-// The pattern "SAN_.*_FUNCTION" is used by the genrule producing
+
+// The pattern "SAN_.*_FUNCTION" is used by stdlib_disallow_update.sh producing
 // stdlib_disallow.inc to exclude functions explicitly listed here.
+// Rerun stdlib_disallow_update.sh on changes to the below list.
 #define SAN_ALLOW_FUNCTION(name)  // Document reason...
 
 // -----------------------------------------------------------------------------

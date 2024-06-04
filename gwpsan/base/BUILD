@@ -22,30 +22,6 @@ package(
     default_visibility = ["//gwpsan:__subpackages__"],
 )
 
-genrule(
-    name = "stdlib_disallow",
-    srcs = ["stdlib.h"],
-    outs = ["stdlib_disallow.inc"],
-    # The below command:
-    #  1. Finds the location of libc.
-    #  2. Looks for text (or weak) symbols.
-    #  3. Strips the version after @@.
-    #  4. Filters out symbols with __ and capital letters.
-    #  5. Filters out symbols we explicitly allow per stdlib.h.
-    #  6. Writes the remaining symbols to the out file.
-    cmd = r"""
-        libc=$$(ldd "$$(which $(NM))" | grep -m1 "libc\.so" | sed 's!^.*=> \([^ ]*\) .*$$!\1!')
-        $(NM) -D "$${libc}" |
-            grep ' [TW] ' | cut -d ' ' -f 3 | cut -d '@' -f 1 |
-            grep -v '__\|[A-Z]' | sort -u |
-            grep -Fxv "$$(grep "^SAN_.*_FUNCTION(" "$(location stdlib.h)" | sed 's/^.*(\([^)]*\)).*$$/\1/')" |
-            while read sym; do
-                echo "SAN_DISALLOW_FUNCTION($${sym});"
-            done > "$@"
-        """,
-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
-)
-
 gwpsan_library(
     name = "base",
     srcs = [
@@ -90,6 +66,7 @@ gwpsan_library(
         "signal.h",
         "span.h",
         "stdlib.h",
+        "stdlib_disallow.inc",
         "synchronization.h",
         "syscall.h",
         "syscall_arm64.h",
@@ -100,7 +77,6 @@ gwpsan_library(
         "unwind.h",
         "vector.h",
         "weak_imports.h",
-        ":stdlib_disallow",
     ],
     linkopts = [
         "-ldl",
@@ -146,11 +122,11 @@ gwpsan_library(
         "signal.h",
         "span.h",
         "stdlib.h",
+        "stdlib_disallow.inc",
         "synchronization.h",
         "units.h",
         "unwind.h",
         "vector.h",
-        ":stdlib_disallow",
     ],
 )
 
