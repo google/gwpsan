@@ -48,11 +48,10 @@ constexpr bool MemAccessEquals(const MemAccess& ma1, const MemAccess& ma2) {
   bool ret = ma1.addr == ma2.addr && ma1.size == ma2.size &&
              ma1.is_read == ma2.is_read && ma1.is_write == ma2.is_write &&
              ma1.is_atomic == ma2.is_atomic;
-  // PC checking is optional.
-  // Requires an optimized build for the instruction of interest to be the
-  // first instruction.
-  if (!GWPSAN_DEBUG && GWPSAN_X64 && ma1.pc && ma2.pc)
-    ret &= ma1.pc == ma2.pc;
+  // PC checking is optional. It's hard to get the precise instruction address,
+  // so we only check that the expected PC is close to the real one.
+  if (GWPSAN_X64 && ma1.pc && ma2.pc)
+    ret &= (ma1.pc <= ma2.pc ? ma2.pc - ma1.pc : ma1.pc - ma2.pc) < 32;
   return ret;
 }
 
