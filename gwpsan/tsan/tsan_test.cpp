@@ -133,11 +133,6 @@ constinit struct {
     volatile long var;
     char buf[sizeof(long)];
   };
-  union {
-    std::atomic<long> avar{};
-    volatile long avar_nonatomic;
-    static_assert(sizeof(std::atomic<long>) == sizeof(volatile long));
-  };
   char tmp[sizeof(long)] = {};
 } test_data;
 
@@ -182,19 +177,16 @@ SAN_NOINLINE void TestAccessWriteWithDummyRead() {
 }
 
 SAN_NOINLINE void TestAccessAtomicRead() {
-  TestSink(test_data.avar.load(std::memory_order_relaxed));
+  // Use builtin atomics, because compiler may outline the std::atomic wrappers.
+  TestSink(__atomic_load_n(&test_data.var, __ATOMIC_RELAXED));
 }
 
 SAN_NOINLINE void TestAccessAtomicWrite() {
-  test_data.avar.store(42, std::memory_order_relaxed);
+  __atomic_store_n(&test_data.var, 42, __ATOMIC_RELAXED);
 }
 
 SAN_NOINLINE void TestAccessAtomicRMW() {
-  test_data.avar.fetch_add(1, std::memory_order_relaxed);
-}
-
-SAN_NOINLINE void TestAccessAtomicNonAtomicRead() {
-  TestSink(test_data.avar_nonatomic);
+  __atomic_fetch_add(&test_data.var, 1, __ATOMIC_RELAXED);
 }
 
 SAN_NOINLINE void TestAccessMemcpyWrite() {
@@ -336,25 +328,23 @@ TEST_F(RaceDetectorTest, AtomicWriteNonAtomicReadNoRace) {
   ScopedTestFlagMutator flags;
   flags->tsan_report_atomic_races = false;
   SetNoRaceTimeout();
-  RunThreads({TestAccessAtomicWrite, TestAccessAtomicNonAtomicRead,
-              TestAccessAtomicNonAtomicRead});
+  RunThreads({TestAccessAtomicWrite, TestAccessRead, TestAccessRead});
   EXPECT_EQ(data_races, 0);
 }
 
 TEST_F(RaceDetectorTest, AtomicWriteNonAtomicReadRace) {
   ScopedTestFlagMutator flags;
   flags->tsan_report_atomic_races = true;
-  RunThreads({TestAccessAtomicWrite, TestAccessAtomicNonAtomicRead,
-              TestAccessAtomicNonAtomicRead});
+  RunThreads({TestAccessAtomicWrite, TestAccessRead, TestAccessRead});
   MemAccess exp_read;
-  exp_read.addr = &test_data.avar;
-  exp_read.size = Sizeof(test_data.avar);
+  exp_read.addr = &test_data.var;
+  exp_read.size = Sizeof(test_data.var);
   exp_read.is_atomic = false;
   auto exp_write = exp_read;
   exp_read.is_read = true;
   exp_write.is_write = true;
   exp_write.is_atomic = true;
-  exp_read.pc = reinterpret_cast<uptr>(&TestAccessAtomicNonAtomicRead);
+  exp_read.pc = reinterpret_cast<uptr>(&TestAccessRead);
   exp_write.pc = reinterpret_cast<uptr>(&TestAccessAtomicWrite);
   ExpectAllDataRaces(exp_read, exp_write);
 }
