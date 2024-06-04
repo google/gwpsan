@@ -170,9 +170,11 @@ TEST(UnifiedTool, LMSanStack) {
     GTEST_SKIP() << "MSan will detect uninits ahead of us";
   if (GWPSAN_INSTRUMENTED_ASAN)
     GTEST_SKIP() << "ASan uses fake stack which we won't spray";
+  // Note: In some cases, "write" will be symbolized as "__write", since one is
+  // an alias to the other.
   ExpectReport(UseOfStackUninit, R"([[MARKER]]
-WARNING: GWPSan: use-of-uninit in write (pid=[[NUM]])
-    #0: [[MODULE]] write
+WARNING: GWPSan: use-of-uninit in _*write (pid=[[NUM]])
+    #0: [[MODULE]] _*write
     [[SKIP-LINES]]
     #[[NUM]]: [[MODULE]] main
 [[MARKER]])");

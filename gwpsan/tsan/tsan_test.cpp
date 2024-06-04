@@ -105,6 +105,10 @@ class RaceDetectorTest : public ::testing::Test {
     timeout_ /= 20;
   }
 
+  void SetLargeTimeout() {
+    timeout_ *= 2;
+  }
+
  private:
   // Note: Only need this large timeout in unoptimized debug builds when running
   // in a VM. On bare metal or in optimized builds, there don't appear to be any
@@ -384,6 +388,7 @@ TEST_F(RaceDetectorTest, MemcpyWriteRace) {
 }
 
 TEST_F(RaceDetectorTest, SyscallWriteRace) {
+  SetLargeTimeout();
   RunThreads({TestAccessWrite, TestAccessSyscall});
   MemAccess exp1;
   exp1.addr = &test_data.var;

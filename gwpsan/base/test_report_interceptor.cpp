@@ -112,7 +112,7 @@ void ReportInterceptor::Expect(const char* report, bool partial) {
     res = RE2::PartialMatch(output(), re);
   else
     res = RE2::FullMatch(output(), re);
-  EXPECT_TRUE(res) << "\Expected:\n" << report;
+  EXPECT_TRUE(res) << "Expected:\n" << report;
 }
 
 void ReportInterceptor::ExpectRegexp(const char* re) {

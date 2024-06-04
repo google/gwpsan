@@ -38,6 +38,7 @@ MATCH=(
   -name "*.h" -o
   -name "*.sh" -o
   -name "*.bzl" -o
+  -name "*.yml" -o
   -name "BUILD" -o
   -name "WORKSPACE" -o
   -name "MODULE.bazel"
