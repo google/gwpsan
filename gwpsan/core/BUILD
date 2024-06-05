@@ -217,7 +217,7 @@ gwpsan_test(
     deps = [
         ":core",
         "@googletest//:gtest_main",
-        "@com_google_absl//absl/time",
+        "@abseil-cpp//absl/time",
         "//gwpsan/base",
     ],
 )
@@ -280,7 +280,7 @@ gwpsan_library(
     copts = common_test_copts,
     deps = [
         ":core",
-        "@com_google_absl//absl/flags:flag",
+        "@abseil-cpp//absl/flags:flag",
         "//gwpsan/base",
     ],
     # Link in all of our code since the target binary does not really depend

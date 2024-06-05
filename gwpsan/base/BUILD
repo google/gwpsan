@@ -82,7 +82,7 @@ gwpsan_library(
         "-ldl",
     ],
     deps = [
-        "@com_google_absl//absl/base:config",
+        "@abseil-cpp//absl/base:config",
     ],
 )
 
@@ -148,8 +148,8 @@ gwpsan_test_library(
         "@googletest//:gtest",
         # Note: the target does not use symbolize directly,
         # but we link it to provide implementations for our Symbolize function.
-        "@com_google_absl//absl/debugging:symbolize",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/debugging:symbolize",
+        "@abseil-cpp//absl/strings",
         "@re2//:re2",
     ],
 )
@@ -183,7 +183,7 @@ gwpsan_test(
         ":metric_collection",
         ":test_utils",
         "@googletest//:gtest_main",
-        "@com_google_absl//absl/debugging:symbolize",
+        "@abseil-cpp//absl/debugging:symbolize",
         "@re2//:re2",
     ],
 )
