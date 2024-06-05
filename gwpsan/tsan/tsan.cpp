@@ -82,7 +82,7 @@ bool RaceDetector::IsInteresting(const CPUContext& ctx,
   const uptr addr = Bytes(access.addr);
   const uptr sp = ctx.reg(kSP).val;
   constexpr uptr kSkipStackRange = 1024;
-  if (addr > sp - kSkipStackRange && addr < sp + kSkipStackRange) {
+  if (!watched_ && addr > sp - kSkipStackRange && addr < sp + kSkipStackRange) {
     SAN_LOG("skipping local stack access");
     return false;
   }

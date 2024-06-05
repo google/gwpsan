@@ -63,7 +63,8 @@ class RaceDetectorTest : public ::testing::Test {
     data_race_accesses.reserve(100);
   }
 
-  void RunThreads(const std::vector<std::function<void()>>& funs) {
+  void RunThreads(const std::vector<std::function<void()>>& funs,
+                  const std::function<void()>& current_thread = {}) {
     constexpr unsigned kIterBeforeTimeout = 10000;
 
     auto thread = [this](const std::function<void()>& f) {
@@ -82,6 +83,8 @@ class RaceDetectorTest : public ::testing::Test {
     threads.reserve(funs.size());
     for (const auto& f : funs)
       threads.emplace_back([&] { thread(f); });
+    if (current_thread)
+      thread(current_thread);
     for (auto& t : threads)
       t.join();
   }
@@ -231,6 +234,22 @@ TEST_F(RaceDetectorTest, ReadWriteRace) {
   exp_write.is_write = true;
   exp_read.pc = reinterpret_cast<uptr>(&TestAccessRead);
   exp_write.pc = reinterpret_cast<uptr>(&TestAccessWrite);
+  ExpectAllDataRaces(exp_read, exp_write);
+}
+
+TEST_F(RaceDetectorTest, StackReadWriteRace) {
+  volatile long stack_var = 0;
+  auto access_stack_read = [&stack_var] { TestSink(stack_var); };
+  auto access_stack_write = [&stack_var] { stack_var = 42; };
+  RunThreads({access_stack_read, access_stack_read, access_stack_read},
+             access_stack_write);
+  MemAccess exp_read;
+  exp_read.addr = &stack_var;
+  exp_read.size = Sizeof(stack_var);
+  exp_read.is_atomic = false;
+  auto exp_write = exp_read;
+  exp_read.is_read = true;
+  exp_write.is_write = true;
   ExpectAllDataRaces(exp_read, exp_write);
 }
 
