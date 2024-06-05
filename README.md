@@ -33,7 +33,10 @@ bazel build --action_env=CC="$CC" --action_env=CXX="$CXX" -c opt \
 ```
 
 If the `clang` and `clang++` binaries in your `PATH` are already version 18 or
-later, you may omit explicitly setting CC and CXX.
+later, you may omit explicitly setting CC and CXX. Some combinations of the GNU
+C++ Library (libstdc++) and Clang versions may be incompatible; if you run into
+problems, try with the LLVM C++ Library (libc++) by additionally passing
+`--config=libc++` to the Bazel command.
 
 To build the target binary with statically linked runtime (adapt to your build
 system):
@@ -78,7 +81,7 @@ production you may not always want to set `halt_on_error`):
 export GWPSAN_OPTIONS=sample_interval_usec=1000000:halt_on_error
 ```
 
-With that, GWPSan only enables period sampling, but no tools are enabled yet.
+With that, GWPSan only enables periodic sampling, but no tools are enabled yet.
 
 > Note: Sampling without enabled tools may be useful to test that a program
 > tolerates receiving signals while in system calls. Error handling of system

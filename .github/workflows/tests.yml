@@ -41,7 +41,7 @@ jobs:
 
       - name: Install dependencies
         # We need:
-        #  - LLVM C++ Standard library (some libstdc++ fail with newer Clang)
+        #  - LLVM C++ Standard library (some GNU libstdc++ fail with newer Clang)
         #  - Clang 18 or later
         run: |
           set -e
@@ -74,8 +74,9 @@ jobs:
             x86_64) extra_args=(--config=x86_64) ;;
             *)      extra_args=()                ;;
           esac
-          bazel test --test_output=errors -c ${{ matrix.compilation_mode }} --config=dev \
-            --action_env=CC="$CC" --action_env=CXX="$CXX" "${extra_args[@]}" -- //gwpsan/...
+          bazel test --test_output=errors -c ${{ matrix.compilation_mode }} \
+            --config=dev --config=libc++ "${extra_args[@]}" \
+            --action_env=CC="$CC" --action_env=CXX="$CXX" -- //gwpsan/...
       - name: Save Bazel cache
         if: github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4

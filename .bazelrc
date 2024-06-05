@@ -1,5 +1,5 @@
 # GWPSan depends on Clang. Currently no GCC support is planned.
-build --config=clang --config=libc++
+build --config=clang
 build --cxxopt=-std=c++20
 build --cxxopt=-Wno-mismatched-tags           # Don't care about Microsoft ABI
 build --copt=--system-header-prefix=external/ # Do not warn in dependencies
@@ -9,7 +9,7 @@ build:clang --action_env=BAZEL_COMPILER=clang
 build:clang --action_env=CC=clang --action_env=CXX=clang++
 build:clang --linkopt=-fuse-ld=lld
 
-# libc++
+# LLVM libc++
 build:libc++ --action_env=CXXFLAGS=-stdlib=libc++
 build:libc++ --action_env=LDFLAGS=-stdlib=libc++
 build:libc++ --action_env=BAZEL_CXXOPTS=-stdlib=libc++
