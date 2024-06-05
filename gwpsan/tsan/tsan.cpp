@@ -94,6 +94,12 @@ bool RaceDetector::IsInteresting(const CPUContext& ctx,
   if (!is_atomic)
     is_atomic = IsAtomicPC(access.pc);
   if (!is_atomic) {
+    // Note: Even if a race is detected between covered and uncovered code, we
+    // should not report the race (i.e. we might get here if watched_!=nullptr).
+    // This is to avoid false positives where at least one of the accesses is in
+    // a function with either attributes `disable_sanitizer_instrumentation` or
+    // `no_sanitize("thread")` (the former disables all metadata, the latter
+    // results in no "atomics" metadata being emitted).
     SAN_LOG("not covered with atomic metadata");
     return false;
   }
