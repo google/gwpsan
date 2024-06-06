@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_VECTOR_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_VECTOR_H_
+#ifndef GWPSAN_BASE_VECTOR_H_
+#define GWPSAN_BASE_VECTOR_H_
 
 #include <stdlib.h>
 
@@ -278,4 +278,4 @@ using MallocVector = Vector<MallocStorage<T>>;
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_VECTOR_H_
+#endif  // GWPSAN_BASE_VECTOR_H_

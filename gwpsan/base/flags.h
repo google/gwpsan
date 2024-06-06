@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_FLAGS_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_FLAGS_H_
+#ifndef GWPSAN_BASE_FLAGS_H_
+#define GWPSAN_BASE_FLAGS_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/span.h"
@@ -58,4 +58,4 @@ bool ParseFlagsFromStr(char* str, const Span<const FlagDesc>& flags);
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_FLAGS_H_
+#endif  // GWPSAN_BASE_FLAGS_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_SPAN_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_SPAN_H_
+#ifndef GWPSAN_BASE_SPAN_H_
+#define GWPSAN_BASE_SPAN_H_
 
 #include "gwpsan/base/common.h"
 
@@ -140,4 +140,4 @@ class Span {
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_SPAN_H_
+#endif  // GWPSAN_BASE_SPAN_H_

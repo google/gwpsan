@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_UNWIND_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_UNWIND_H_
+#ifndef GWPSAN_BASE_UNWIND_H_
+#define GWPSAN_BASE_UNWIND_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/span.h"
@@ -33,4 +33,4 @@ void Symbolize(uptr pc, char* buf, int buf_size, bool add_src);
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_UNWIND_H_
+#endif  // GWPSAN_BASE_UNWIND_H_

@@ -30,8 +30,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_IMPORT_INT_LIB_H_
-#define THIRD_PARTY_GWP_SANITIZERS_IMPORT_INT_LIB_H_
+#ifndef GWPSAN_IMPORT_INT_LIB_H_
+#define GWPSAN_IMPORT_INT_LIB_H_
 
 #include "gwpsan/base/common.h"
 
@@ -58,4 +58,4 @@ extern "C" tu_int gwpsan_udivmodti4(tu_int a, tu_int b, tu_int* rem);
 
 }  // namespace gwpsan::third_party
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_IMPORT_INT_LIB_H_
+#endif  // GWPSAN_IMPORT_INT_LIB_H_

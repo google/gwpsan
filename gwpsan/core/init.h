@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_CORE_INIT_H_
-#define THIRD_PARTY_GWP_SANITIZERS_CORE_INIT_H_
+#ifndef GWPSAN_CORE_INIT_H_
+#define GWPSAN_CORE_INIT_H_
 
 #include "gwpsan/base/common.h"
 
@@ -22,4 +22,4 @@ bool Init();
 bool ForceInit();  // Skips all prerequisite checks.
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_CORE_INIT_H_
+#endif  // GWPSAN_CORE_INIT_H_

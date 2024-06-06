@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_UAR_UAR_H_
-#define THIRD_PARTY_GWP_SANITIZERS_UAR_UAR_H_
+#ifndef GWPSAN_UAR_UAR_H_
+#define GWPSAN_UAR_UAR_H_
 
 #include <pthread.h>
 #include <signal.h>
@@ -134,4 +134,4 @@ class UarDetector final : public Tool,
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_UAR_UAR_H_
+#endif  // GWPSAN_UAR_UAR_H_

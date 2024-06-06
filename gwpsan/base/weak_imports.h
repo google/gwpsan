@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_WEAK_IMPORTS_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_WEAK_IMPORTS_H_
+#ifndef GWPSAN_BASE_WEAK_IMPORTS_H_
+#define GWPSAN_BASE_WEAK_IMPORTS_H_
 
 #include "absl/base/config.h"
 #include "gwpsan/base/common.h"
@@ -26,4 +26,4 @@ SAN_WEAK_IMPORT bool Symbolize(const void* pc, char* out, int out_size);
 ABSL_NAMESPACE_END
 }  // namespace absl
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_WEAK_IMPORTS_H_
+#endif  // GWPSAN_BASE_WEAK_IMPORTS_H_

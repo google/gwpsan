@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_COMMON_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_COMMON_H_
+#ifndef GWPSAN_BASE_COMMON_H_
+#define GWPSAN_BASE_COMMON_H_
 
 // Since common.h is included in many places, including tests, we might get
 // naming conflicts if macros don't have a namespace prefix. For brevity, use
@@ -495,4 +495,4 @@ inline void* operator new(gwpsan::uptr sz, gwpsan::Placed placed) {
   return placed.ptr();
 }
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_COMMON_H_
+#endif  // GWPSAN_BASE_COMMON_H_

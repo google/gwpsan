@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_METRIC_COLLECTION_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_METRIC_COLLECTION_H_
+#ifndef GWPSAN_BASE_METRIC_COLLECTION_H_
+#define GWPSAN_BASE_METRIC_COLLECTION_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/metric.h"
@@ -68,4 +68,4 @@ SAN_INTERFACE void gwpsan_collect_metrics(void (*callback)(const gwpsan_metric*,
                                           void* arg);
 }  // extern "C"
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_METRIC_COLLECTION_H_
+#endif  // GWPSAN_BASE_METRIC_COLLECTION_H_

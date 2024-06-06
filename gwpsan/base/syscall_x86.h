@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_X86_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_X86_H_
+#ifndef GWPSAN_BASE_SYSCALL_X86_H_
+#define GWPSAN_BASE_SYSCALL_X86_H_
 
 // IWYU pragma: private, include "gwpsan/base/syscall.h"
 
@@ -115,4 +115,4 @@
     return Result<type>(res);                                              \
   }
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_X86_H_
+#endif  // GWPSAN_BASE_SYSCALL_X86_H_

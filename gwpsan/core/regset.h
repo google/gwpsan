@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_CORE_REGSET_H_
-#define THIRD_PARTY_GWP_SANITIZERS_CORE_REGSET_H_
+#ifndef GWPSAN_CORE_REGSET_H_
+#define GWPSAN_CORE_REGSET_H_
 
 #include "gwpsan/base/array.h"
 #include "gwpsan/base/common.h"

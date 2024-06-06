@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_UNIFIED_TOOL_H_
-#define THIRD_PARTY_GWP_SANITIZERS_UNIFIED_TOOL_H_
+#ifndef GWPSAN_UNIFIED_TOOL_H_
+#define GWPSAN_UNIFIED_TOOL_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/memory.h"
@@ -96,4 +96,4 @@ inline constexpr uptr kToolCount = SAN_ARRAY_SIZE(kAllTools);
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_UNIFIED_TOOL_H_
+#endif  // GWPSAN_UNIFIED_TOOL_H_

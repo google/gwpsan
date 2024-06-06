@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_CORE_CORE_FWD_H_
-#define THIRD_PARTY_GWP_SANITIZERS_CORE_CORE_FWD_H_
+#ifndef GWPSAN_CORE_CORE_FWD_H_
+#define GWPSAN_CORE_CORE_FWD_H_
 
 namespace gwpsan {
 
@@ -34,4 +34,4 @@ using OpRef = const Operation&;
 
 }  // namespace gwpsan
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_CORE_CORE_FWD_H_
+#endif  // GWPSAN_CORE_CORE_FWD_H_

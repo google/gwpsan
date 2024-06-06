@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_CORE_SEMANTIC_METADATA_H_
-#define THIRD_PARTY_GWP_SANITIZERS_CORE_SEMANTIC_METADATA_H_
+#ifndef GWPSAN_CORE_SEMANTIC_METADATA_H_
+#define GWPSAN_CORE_SEMANTIC_METADATA_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/optional.h"
@@ -63,4 +63,4 @@ class SemanticMetadataScopedFork {
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_CORE_SEMANTIC_METADATA_H_
+#endif  // GWPSAN_CORE_SEMANTIC_METADATA_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_CONFIG_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_CONFIG_H_
+#ifndef GWPSAN_BASE_CONFIG_H_
+#define GWPSAN_BASE_CONFIG_H_
 
 // IWYU pragma: private, include "gwpsan/base/common.h"
 
@@ -51,4 +51,4 @@
    GWPSAN_INSTRUMENTED_DFSAN || GWPSAN_INSTRUMENTED_UBSAN || \
    GWPSAN_INSTRUMENTED_COVSAN)
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_CONFIG_H_
+#endif  // GWPSAN_BASE_CONFIG_H_

@@ -15,8 +15,8 @@
 // Helpers and definitions not yet found in Linux UAPI headers distributed with
 // most Linux distributions. We should eventually be able to remove this header.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_LINUX_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_LINUX_H_
+#ifndef GWPSAN_BASE_LINUX_H_
+#define GWPSAN_BASE_LINUX_H_
 
 #include <linux/perf_event.h>
 #include <signal.h>
@@ -95,4 +95,4 @@ struct linux_dirent64 {
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_LINUX_H_
+#endif  // GWPSAN_BASE_LINUX_H_

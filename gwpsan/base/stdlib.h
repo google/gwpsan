@@ -33,8 +33,8 @@
 
 // IWYU pragma: private
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_STDLIB_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_STDLIB_H_
+#ifndef GWPSAN_BASE_STDLIB_H_
+#define GWPSAN_BASE_STDLIB_H_
 #ifndef GWPSAN_TEST
 
 namespace gwpsan {
@@ -107,4 +107,4 @@ SAN_ALLOW_FUNCTION(pthread_setspecific);
 }  // namespace gwpsan
 
 #endif  // GWPSAN_TEST
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_STDLIB_H_
+#endif  // GWPSAN_BASE_STDLIB_H_

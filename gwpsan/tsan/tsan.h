@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_TSAN_TSAN_H_
-#define THIRD_PARTY_GWP_SANITIZERS_TSAN_TSAN_H_
+#ifndef GWPSAN_TSAN_TSAN_H_
+#define GWPSAN_TSAN_TSAN_H_
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/numeric.h"
@@ -49,4 +49,4 @@ class RaceDetector final : public Tool {
 
 }  // namespace gwpsan SAN_LOCAL
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_TSAN_TSAN_H_
+#endif  // GWPSAN_TSAN_TSAN_H_

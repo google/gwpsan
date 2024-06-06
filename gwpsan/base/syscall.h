@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_H_
-#define THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_H_
+#ifndef GWPSAN_BASE_SYSCALL_H_
+#define GWPSAN_BASE_SYSCALL_H_
 
 #include <errno.h>
 #include <fcntl.h>
@@ -129,4 +129,4 @@ GWPSAN_SYSCALL2(int, arch_prctl, int, code, uptr*, addr);
 #undef GWPSAN_SYSCALL5
 #undef GWPSAN_SYSCALL6
 
-#endif  // THIRD_PARTY_GWP_SANITIZERS_BASE_SYSCALL_H_
+#endif  // GWPSAN_BASE_SYSCALL_H_
