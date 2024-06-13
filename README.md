@@ -5,9 +5,26 @@ instrumentation, designed for implementing various bug detectors (also called
 "sanitizers") suitable for production uses. GWPSan does not modify the executed
 code, but instead performs dynamic analysis from signal handlers.
 
+Compared with non-sampling dynamic analysis, GWPSan trades performance for
+precision, allowing it to be enabled where more expensive dynamic analysis
+would otherwise not be feasible (such as in production). The idea is that with
+enough total uptime, GWPSan will detect bugs in code not typically covered by
+non-production test workloads. One way to quickly achieve a large enough total
+uptime is when deployed across a fleet of machines.
+
 > Note: GWPSan is inspired by
 > [GWP-ASan](https://github.com/google/sanitizers/tree/master/gwp-asan/icse2024),
-> but their design and implementation are completely different.
+> but their design and implementation are completely different. GWP-ASan is
+> much simpler and only provides sampling-based heap memory-safety error
+> detection, and is typically embedded in the system heap allocator.
+>
+> GWPSan and GWP-ASan complement each other, where GWPSan aims to be a more
+> generic framework to implement dynamic analysis.
+>
+> The acronym "GWP" in both tools' names is originally derived from
+> [Google-Wide
+> Profiling](https://research.google/pubs/google-wide-profiling-a-continuous-profiling-infrastructure-for-data-centers/),
+> due to relying on sampling, but otherwise have no relation with GWP.
 
 More documentation can be found [here](docs/).
 
@@ -91,7 +108,9 @@ With that, GWPSan only enables periodic sampling, but no tools are enabled yet.
 
 The following [tools](docs/tools.md) are available:
 
--   `tsan` detects data races. Enabled/disabled with `GWPSAN_OPTIONS=tsan=0/1`.
+-   `tsan` detects [data
+    races](https://en.cppreference.com/w/cpp/language/multithread#Data_races).
+    Enabled/disabled with `GWPSAN_OPTIONS=tsan=0/1`.
 -   `uar` detects use-after-return bugs. Enabled/disabled with
     `GWPSAN_OPTIONS=uar=0/1`.
 -   `lmsan` detects uses of uninit values (experimental). Enabled/disabled with

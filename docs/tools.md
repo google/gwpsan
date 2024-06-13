@@ -37,8 +37,8 @@ used/remaining stack space, and try to do other unusual things with stack.
 [Source](https://github.com/google/gwpsan/blob/main/gwpsan/tsan/tsan.cpp)
 
 *TSan (Thread Sanitizer)* detects [data
-races](https://en.cppreference.com/w/cpp/language/multithread). It can be
-enabled with `GWPSAN_OPTIONS=tsan=1`.
+races](https://en.cppreference.com/w/cpp/language/multithread#Data_races). It
+can be enabled with `GWPSAN_OPTIONS=tsan=1`.
 
 > Note: The name "TSan" is inspired by the similarly named
 > compiler-instrumentation based tool [ThreadSanitizer
