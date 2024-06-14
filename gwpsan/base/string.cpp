@@ -206,4 +206,9 @@ bool MatchStr(const char* str, const char* pattern) {
   SAN_UNREACHABLE();
 }
 
+const char* Basename(const char* path) {
+  const char* basename = internal_strrchr(path, '/');
+  return basename ? basename + 1 : path;
+}
+
 }  // namespace gwpsan

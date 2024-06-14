@@ -19,6 +19,7 @@
 #include "gwpsan/base/memory.h"
 #include "gwpsan/base/optional.h"
 #include "gwpsan/base/os.h"
+#include "gwpsan/base/string.h"
 
 extern "C" SAN_WEAK_IMPORT int main();
 
@@ -84,8 +85,7 @@ ModulesInfo ParseModuleList(char* buffer, uptr own_addr, uptr main_addr) {
     // PCs for symbolization must include the offset for such executables.
     if (!info.list && offset <= 0x00800000)
       offset = 0;
-    const char* name = internal_strrchr(file, '/');
-    name = name ? name + 1 : file;
+    const char* name = Basename(file);
     auto* mod = PersistentNew<internal::ModuleInfoNode>();
     mod->start_address = start;
     mod->end_address = end;

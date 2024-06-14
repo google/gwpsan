@@ -32,6 +32,9 @@ namespace gwpsan SAN_LOCAL {
 //  | : or (match multiple patterns);
 bool MatchStr(const char* str, const char* pattern);
 
+// Extract the basename from a path.
+const char* Basename(const char* path);
+
 }  // namespace gwpsan SAN_LOCAL
 
 #endif  // GWPSAN_BASE_STRING_H_

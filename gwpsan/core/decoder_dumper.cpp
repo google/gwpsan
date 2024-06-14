@@ -25,6 +25,7 @@
 #include "gwpsan/base/array.h"
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/log.h"
+#include "gwpsan/base/string.h"
 #include "gwpsan/base/vector.h"
 #include "gwpsan/core/arch.h"
 #include "gwpsan/core/decode.h"
@@ -163,11 +164,7 @@ void DumpInstructions() {
   dl_iterate_phdr(
       [](struct dl_phdr_info* info, size_t, void* arg) {
         OpcodeArray& opcodes = *static_cast<OpcodeArray*>(arg);
-        const char* name = strrchr(info->dlpi_name, '/');
-        if (name)
-          name++;
-        else
-          name = info->dlpi_name;
+        const char* name = Basename(info->dlpi_name);
         printf("processing module %s\n", name);
         if (strstr(info->dlpi_name, "linux-vdso.so"))
           ProcessMemory(opcodes, info);

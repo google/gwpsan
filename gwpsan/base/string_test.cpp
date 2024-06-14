@@ -112,5 +112,13 @@ TEST(String, MatchStr) {
   EXPECT_FALSE(MatchStr("foobar", "^ooba$"));
 }
 
+TEST(String, Basename) {
+  EXPECT_STREQ(Basename(""), "");
+  EXPECT_STREQ(Basename("foobar"), "foobar");
+  EXPECT_STREQ(Basename("foo/bar"), "bar");
+  EXPECT_STREQ(Basename("/foobar"), "foobar");
+  EXPECT_STREQ(Basename("/a/b/c/d/e/f"), "f");
+}
+
 }  // namespace
 }  // namespace gwpsan
