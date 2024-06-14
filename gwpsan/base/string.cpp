@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "gwpsan/base/string.h"
+
 #include "gwpsan/base/common.h"
 
 namespace gwpsan {
@@ -140,7 +142,8 @@ SAN_NOINLINE char* internal_strstr(const char* str, const char* what) {
   return nullptr;
 }
 
-// These are exposed for internalized libraries (see e.g. msan:libmsan_private).
+// These are exposed for internalized libraries (see e.g.
+// unified:unified_private).
 extern "C" {
 SAN_LOCAL SAN_USED void* gwpsan_memcpy(void* dest, const void* src, uptr n) {
   return internal_memcpy(dest, src, n);
@@ -150,5 +153,57 @@ SAN_LOCAL SAN_USED void* gwpsan_memset(void* s, int c, uptr n) {
   return internal_memset(s, c, n);
 }
 }  // extern "C"
+
+bool MatchStr(const char* str, const char* pattern) {
+  const uptr str_len = internal_strlen(str);
+
+  auto match_one = [str, str_len](const char* pattern, uptr pat_len) {
+    bool match_begin = false;
+    bool match_end = false;
+    if (pat_len) {
+      if (pattern[0] == '^') {
+        match_begin = true;
+        pattern++;
+        pat_len--;
+      }
+      if (pattern[pat_len - 1] == '$') {
+        match_end = true;
+        pat_len--;
+      }
+    }
+
+    if (str_len < pat_len)
+      return false;
+
+    // max starting char from within `str`.
+    const uptr str_max = str_len - pat_len;
+
+    if (match_begin || match_end) {
+      if (match_begin && match_end && str_len != pat_len)
+        return false;  // never equal
+      const uptr str_start = match_end ? str_max : 0;
+      return !internal_memcmp(str + str_start, pattern, pat_len);
+    }
+
+    for (uptr str_start = 0; str_start <= str_max; str_start++) {
+      if (!internal_memcmp(str + str_start, pattern, pat_len))
+        return true;
+    }
+    return false;
+  };
+
+  // Iterate through all patterns and check them.
+  for (const char* pat_end = pattern;; pat_end++) {
+    if (*pat_end == '|' || *pat_end == 0) {
+      if (match_one(pattern, pat_end - pattern))
+        return true;
+      if (*pat_end == 0)
+        return false;
+      pattern = pat_end + 1;  // advance to next pattern
+    }
+  }
+
+  SAN_UNREACHABLE();
+}
 
 }  // namespace gwpsan

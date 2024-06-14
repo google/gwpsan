@@ -67,6 +67,7 @@ gwpsan_library(
         "span.h",
         "stdlib.h",
         "stdlib_disallow.inc",
+        "string.h",
         "synchronization.h",
         "syscall.h",
         "syscall_arm64.h",

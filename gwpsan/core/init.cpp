@@ -22,6 +22,7 @@
 #include "gwpsan/base/metric_collection.h"
 #include "gwpsan/base/module_list.h"
 #include "gwpsan/base/os.h"
+#include "gwpsan/base/string.h"
 #include "gwpsan/base/units.h"
 #include "gwpsan/base/vector.h"
 #include "gwpsan/core/breakmanager.h"
@@ -197,8 +198,8 @@ bool Init() {
   if (const char* filter = GetFlags().process_filter) {
     char process[256];
     ReadProcessName(process);
-    if (!internal_strstr(process, filter)) {
-      SAN_LOG("not enabling due to process filter");
+    if (!MatchStr(process, filter)) {
+      SAN_LOG("not enabling due to process filter: %s", process);
       return false;
     }
   }

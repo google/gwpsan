@@ -163,7 +163,7 @@ void Die() {
   if (abort_on_die)
     abort();
   sys_exit_group(die_error_code);
-  __builtin_unreachable();
+  SAN_UNREACHABLE();
 }
 
 Optional<ThreadState> GetThreadState(int tid) {

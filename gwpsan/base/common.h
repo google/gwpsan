@@ -30,6 +30,7 @@
 #define SAN_OPTNONE __attribute__((optnone))
 #define SAN_LIKELY(x) __builtin_expect(!!(x), 1)
 #define SAN_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define SAN_UNREACHABLE() __builtin_unreachable()
 #define SAN_UNUSED __attribute__((unused))
 #define SAN_USED __attribute__((used, retain))
 #define SAN_ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
