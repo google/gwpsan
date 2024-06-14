@@ -21,6 +21,7 @@
 namespace gwpsan SAN_LOCAL {
 
 struct Flags {
+  // Runtime core
   bool help = false;
   bool& log;
   const char*& log_path;
@@ -35,25 +36,24 @@ struct Flags {
   bool must_init = false;
   bool test_mode = false;
   const char* process_filter = nullptr;
-  uptr heap_size_mb = 10;
-  const char* dump = nullptr;
-  // GWP-TSan
+  // TSan tool
   bool tsan = false;
   bool tsan_report_atomic_races = false;
   uptr tsan_delay_usec = 100;
   uptr tsan_skip_watch = 3;
-  // GWP-UAR
+  // UAR tool
   bool uar = false;
   uptr uar_check_every_nth_thread = 1;
-  // GWP-LMSan.
+  // LMSan tool
   bool lmsan = false;
-  // Unified (GWPSan)
+  // Unified tool
   uptr sample_interval_usec = 0;
   bool sample_after_fork = true;
   uptr peek_instructions = 20;
   bool check_mem_funcs = true;
   bool check_syscalls = true;
   bool check_malloc = false;
+  const char* dump = nullptr;
 };
 
 bool InitFlags();

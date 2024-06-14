@@ -85,12 +85,6 @@ bool InitFlags() {
     {&flags.process_filter, "process_filter",
       "Only check processes that contain this substring in the binary name"
       " (can be used to check e.g. compiler but not linker)."},
-    {&flags.heap_size_mb, "heap_size_mb",
-      "Max heap size in MB."},
-    {&flags.dump, "dump",
-      "=metadata: dump sanitizer metadata in the binary and exit.\n"
-      "=instructions: decode all instructions in the binary and dump"
-      " information about them."},
     {&flags.tsan, "tsan",
       "Enable data-race detection."},
     {&flags.tsan_report_atomic_races, "tsan_report_atomic_races",
@@ -118,6 +112,10 @@ bool InitFlags() {
       "Check arguments of known system calls."},
     {&flags.check_malloc, "check_malloc",
       "Analyze malloc calls."},
+    {&flags.dump, "dump",
+      "=metadata: dump sanitizer metadata in the binary and exit.\n"
+      "=instructions: decode all instructions in the binary and dump"
+      " information about them."},
   };
   // clang-format on
   char buf[400];  // should be enough for everyone
