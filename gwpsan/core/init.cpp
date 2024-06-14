@@ -198,8 +198,9 @@ bool Init() {
   if (const char* filter = GetFlags().process_filter) {
     char process[256];
     ReadProcessName(process);
-    if (!MatchStr(process, filter)) {
-      SAN_LOG("not enabling due to process filter: %s", process);
+    const char* basename = Basename(process);
+    if (!MatchStr(basename, filter)) {
+      SAN_LOG("not enabling due to process filter: %s", basename);
       return false;
     }
   }

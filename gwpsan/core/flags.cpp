@@ -83,7 +83,7 @@ bool InitFlags() {
       "Don't require full breakpoint support (SIGTRAP, kernel traps)."
       " Intended for testing, can lead to false positives and crashes."},
     {&flags.process_filter, "process_filter",
-      "Only check processes that match a pattern in the binary name."
+      "Only check processes where the executable basename matches a pattern."
       " Metacharacters ^ and $ match the beginning or end;"
       " multiple patterns can be separated by |."},
     {&flags.tsan, "tsan",
