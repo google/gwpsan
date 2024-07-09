@@ -37,6 +37,8 @@ DEFINE_METRIC(metadata_atomics, 0, "Metadata atomic operations");
 using AtomicsVector = MallocVector<uptr>;
 using LoadFunc = void (*)(u32, const char*, const char* start);
 
+constexpr u32 kNoAtomics = -1u;
+
 struct DelayedMetadata {
   LoadFunc fn;
   u32 version;
@@ -49,17 +51,34 @@ struct MetaFunc {
   u32 size;
   u32 stack_args_size;
   SemanticFlags features;  // features covered in this function
-  u32 atomic_index;        // in MetaModule::atomics or kNoAtomics
+  u32 atomic_flat_idx;     // in MetaModule::atomics or kNoAtomics
 };
 
 struct MetaModule {
   uptr start_pc = 0;
   uptr end_pc = 0;
   MallocVector<MetaFunc> funcs;
-  AtomicsVector atomics;
-};
+  // List of list of atomics PCs. We can't just have a single vector, because
+  // the lazy processing of pending atomics may happen from signal handlers, and
+  // appending to a single vector may cause an allocation. Instead, we just move
+  // the AtomicVector allocated in the constructor into a pre-allocated slot.
+  MallocVector<AtomicsVector> atomics;
 
-constexpr u32 kNoAtomics = -1;
+  const uptr* GetAtomicPC(u32 atomic_flat_idx) const {
+    // Avoid touching the atomics array (separate cache line).
+    if (atomic_flat_idx == kNoAtomics)
+      return nullptr;
+
+    // Calculate index into atomics based on flat index.
+    u32 atomic_inner_idx = atomic_flat_idx;
+    auto mod_atomics = atomics.begin();
+    while (atomic_inner_idx >= mod_atomics->size()) {
+      atomic_inner_idx -= mod_atomics->size();
+      mod_atomics++;
+    }
+    return &mod_atomics->at(atomic_inner_idx);
+  }
+};
 
 // The following variables are changed only during program initialization,
 // so they are not protected by the mutex.
@@ -103,24 +122,44 @@ void SortModules() SAN_REQUIRES(semantic_mtx) {
 
 void AddAtomics(MetaModule& mod, AtomicsVector&& atomics)
     SAN_REQUIRES(semantic_mtx) {
-  SAN_WARN(!mod.atomics.empty());
   // There must be at least 1 real PC and -1 sentinel at the end.
-  if (SAN_WARN(atomics.size() < 2 || atomics.back() != -1))
+  if (SAN_WARN(atomics.size() < 2 || atomics.back() != -1ul))
     return;
+  SAN_LOG("adding atomics: 0x%zx-0x%zx, mod: 0x%zx-0x%zx", atomics[0],
+          atomics[atomics.size() - 2], mod.start_pc, mod.end_pc);
   SAN_WARN(atomics[0] < mod.start_pc || atomics[0] >= mod.end_pc ||
-               atomics[atomics.size() - 2] < mod.start_pc ||
-               atomics[atomics.size() - 2] >= mod.end_pc,
-           "atomics: 0x%zx-0x%zx, mod: 0x%zx-0x%zx", atomics[0],
-           atomics[atomics.size() - 2], mod.start_pc, mod.end_pc);
-  mod.atomics = move(atomics);
-  u32 idx = 0;
-  for (auto& func : mod.funcs) {
-    const uptr func_start = mod.start_pc + func.offset;
-    while (mod.atomics[idx] < func_start)
-      idx++;
-    if (mod.atomics[idx] < func_start + func.size)
-      func.atomic_index = idx;
+           atomics[atomics.size() - 2] < mod.start_pc ||
+           atomics[atomics.size() - 2] >= mod.end_pc);
+  if (SAN_WARN(mod.atomics.empty()))
+    return;
+
+  // Compute the index base and pick a slot.
+  AtomicsVector* atomics_slot = nullptr;
+  u32 idx_base = 0;
+  for (auto& slot : mod.atomics) {
+    if (slot.empty()) {
+      atomics_slot = &slot;
+      break;
+    }
+    idx_base += slot.size();
   }
+  if (SAN_WARN(!atomics_slot))
+    return;
+
+  // Compute all MetaFunc::atomic_flat_idx.
+  u32 inner_idx = 0;
+  for (auto& func : mod.funcs) {
+    if (func.atomic_flat_idx != kNoAtomics)
+      continue;  // already computed
+    const uptr func_start = mod.start_pc + func.offset;
+    // Sentinel ensures we stop eventually.
+    while (atomics[inner_idx] < func_start)
+      inner_idx++;
+    if (atomics[inner_idx] < func_start + func.size)
+      func.atomic_flat_idx = inner_idx + idx_base;
+  }
+
+  *atomics_slot = move(atomics);
 }
 
 void AttachAtomics() SAN_REQUIRES(semantic_mtx) {
@@ -135,7 +174,7 @@ void AttachAtomics() SAN_REQUIRES(semantic_mtx) {
   uptr mpos = 0;
   for (auto& atomics : *pending_atomics) {
     // There must be at least 1 real PC and -1 sentinel at the end.
-    if (SAN_WARN(atomics.size() < 2 || atomics.back() != -1))
+    if (SAN_WARN(atomics.size() < 2 || atomics.back() != -1ul))
       continue;
     // Skip non-matching modules.
     while (mpos < modules->size() && (*modules)[mpos].end_pc <= atomics[0])
@@ -153,6 +192,31 @@ void AttachAtomics() SAN_REQUIRES(semantic_mtx) {
   // Note: we cannot reset pending_atomics since it will call free and
   // we may be in a signal handler.
   pending_atomics->shrink(apos);
+}
+
+// Find the first MetaModule where `pc` is equal or larger than the start_pc of
+// the module.
+MetaModule* FindFirstMetaModule(uptr pc) SAN_REQUIRES(semantic_mtx) {
+  if (modules->empty())
+    return nullptr;
+  auto mod = upper_bound(
+      modules->begin(), modules->end(), pc,
+      [](uptr pc, const MetaModule& mod) -> bool { return pc < mod.start_pc; });
+  if (mod != modules->begin())
+    --mod;
+  if (pc < mod->start_pc)
+    return nullptr;
+  return mod;
+}
+
+// Find the MetaModule that contains `pc`, nullptr otherwise.
+MetaModule* FindMetaModule(uptr pc) SAN_REQUIRES(semantic_mtx) {
+  auto mod = FindFirstMetaModule(pc);
+  if (!mod)
+    return nullptr;
+  if (pc >= mod->end_pc)
+    return nullptr;
+  return mod;
 }
 
 Pair<MetaModule*, MetaFunc*> FindFunc(uptr pc, bool compact = true)
@@ -180,12 +244,8 @@ Pair<MetaModule*, MetaFunc*> FindFunc(uptr pc, bool compact = true)
         offset < last_func->offset + last_func->size)
       return {last_module, last_func};
   }
-  auto mod = upper_bound(
-      modules->begin(), modules->end(), pc,
-      [](uptr pc, const MetaModule& mod) -> bool { return pc < mod.start_pc; });
-  if (mod != modules->begin())
-    --mod;
-  if (pc < mod->start_pc || pc >= mod->end_pc)
+  auto* mod = FindMetaModule(pc);
+  if (!mod)
     return {};
   const u32 offset = static_cast<u32>(pc - mod->start_pc);
   auto func = upper_bound(mod->funcs.begin(), mod->funcs.end(), offset,
@@ -277,12 +337,12 @@ Optional<bool> IsAtomicPC(uptr pc) {
   auto [mod, func] = FindFunc(pc);
   if (!func || !(func->features & kSemanticAtomic))
     return {};
-  // Avoid touching the atomics array (separate cache line).
-  if (func->atomic_index == kNoAtomics)
+  const uptr* pc_p = mod->GetAtomicPC(func->atomic_flat_idx);
+  if (!pc_p)
     return false;
   // Note: we don't need to check the size, since we added sentinel at the end.
-  for (uptr i = func->atomic_index; mod->atomics[i] <= pc; i++) {
-    if (mod->atomics[i] == pc)
+  for (; *pc_p <= pc; pc_p++) {
+    if (*pc_p == pc)
       return true;
   }
   return false;
@@ -318,10 +378,10 @@ void DumpSemanticMetadata() {
       Printf("  func 0x%zx-0x%zx(%4u) features:%s%s args:%u %s\n", off,
              off + func.size, func.size, atomics, uar, func.stack_args_size,
              name);
-      uptr end = mod.start_pc + func.offset + func.size;
-      for (uptr i = func.atomic_index;
-           i < mod.atomics.size() && mod.atomics[i] < end; i++)
-        Printf("    atomic 0x%zx\n", mod.atomics[i] - info.start_address);
+      uptr func_end = mod.start_pc + func.offset + func.size;
+      for (const uptr* pc_p = mod.GetAtomicPC(func.atomic_flat_idx);
+           pc_p && *pc_p < func_end; pc_p++)
+        Printf("    atomic 0x%zx\n", *pc_p - info.start_address);
     }
   }
 #else   // #if GWPSAN_DEBUG
@@ -472,7 +532,7 @@ bool SkipMetadataDel(SemanticFlags needed, u32 version, const char* start) {
 SAN_INTERFACE void __sanitizer_metadata_covered_add(u32 version,
                                                     const char* start,
                                                     const char* end) {
-  SAN_LOG("covered metadata add %p-%p", start, end);
+  SAN_LOG("covered metadata (v%u) add %p-%p", version, start, end);
   if (SkipMetadataAdd(kSemanticAll, __sanitizer_metadata_covered_add, version,
                       start, end))
     return;
@@ -480,6 +540,9 @@ SAN_INTERFACE void __sanitizer_metadata_covered_add(u32 version,
   uptr min_addr = static_cast<uptr>(-1);
   uptr max_addr = 0;
   SemanticFlags combined_features = 0;
+
+  // Pass 1: Parse metadata to determine min_addr used to calculate offsets
+  // below.
   ParseCoveredInfo(version, start, end,
                    [&](uptr start, u32 size, SemanticFlags features, u32) {
                      count++;
@@ -495,10 +558,13 @@ SAN_INTERFACE void __sanitizer_metadata_covered_add(u32 version,
   if (!count)
     return;
   __atomic_fetch_or(&covered_features, combined_features, __ATOMIC_RELAXED);
+
   MetaModule mod;
   mod.funcs.reserve(count);
   mod.start_pc = min_addr;
   mod.end_pc = max_addr;
+
+  // Pass 2: Compute and store offsets of function PCs.
   ParseCoveredInfo(
       version, start, end,
       [&](uptr start, u32 size, SemanticFlags features, u32 stack_args_size) {
@@ -514,14 +580,54 @@ SAN_INTERFACE void __sanitizer_metadata_covered_add(u32 version,
   // Frequently sorted, but compiler/linker do not guarantee that.
   if (!is_sorted(mod.funcs.begin(), mod.funcs.end(), pred))
     sort(mod.funcs.begin(), mod.funcs.end(), pred);
+
+  // Append to global list of modules.
   Lock lock(semantic_mtx);
   if (!modules)
     modules.emplace();
-  modules->emplace_back(move(mod));
+
+  auto funcs_add_offset = [](MallocVector<MetaFunc>& funcs, uptr offset_delta) {
+    for (auto& func : funcs) {
+      const uptr new_offset = offset_delta + func.offset;
+      if (SAN_WARN(new_offset != static_cast<u32>(new_offset)))
+        return;
+      func.offset = static_cast<u32>(new_offset);
+    }
+  };
+  // Find overlapping module and merge new covered metadata into it. This is
+  // possible if a module was linked from TUs that have sanitizer metadata of
+  // different versions. Multi-version sanitizer metadata usage requires this
+  // LLVM fix commit: https://github.com/llvm/llvm-project/commit/f5b9e11eb8ad
+  auto* overlap_mod = FindFirstMetaModule(mod.end_pc);
+  if (overlap_mod && mod.start_pc < overlap_mod->end_pc) {
+    SAN_LOG("found overlapping module 0x%zx-0x%zx", overlap_mod->start_pc,
+            overlap_mod->end_pc);
+    overlap_mod->end_pc = max(overlap_mod->end_pc, mod.end_pc);
+    if (mod.start_pc < overlap_mod->start_pc) {
+      // Adjust all pre-existing function offsets to the new start_pc.
+      funcs_add_offset(overlap_mod->funcs,
+                       overlap_mod->start_pc - mod.start_pc);
+      overlap_mod->start_pc = mod.start_pc;
+    } else {
+      // Adjust the new function offsets to the old start_pc.
+      funcs_add_offset(mod.funcs, mod.start_pc - overlap_mod->start_pc);
+    }
+    // Merge functions. We assume that there are no duplicate functions.
+    overlap_mod->funcs.reserve(overlap_mod->funcs.size() + mod.funcs.size());
+    for (auto& func : mod.funcs)
+      overlap_mod->funcs.emplace_back(func);
+    // Sort merged functions; unlikely to still be sorted.
+    sort(overlap_mod->funcs.begin(), overlap_mod->funcs.end(), pred);
+    // Reserve one more atomics slot.
+    overlap_mod->atomics.emplace_back();
+  } else {
+    mod.atomics.emplace_back();
+    modules->emplace_back(move(mod));
+  }
   modules_sorted = false;
 
-  SAN_LOG("loaded %zu covered metadata entries from %p-%p (%s)", count, start,
-          end, [ctor_pc = SAN_CALLER_PC()] {
+  SAN_LOG("loaded %zu covered metadata entries from %p-%p (0x%zx-0x%zx %s)",
+          count, start, end, min_addr, max_addr, [ctor_pc = SAN_CALLER_PC()] {
             if (const auto* mod = FindModule(ctor_pc))
               return mod->name;
             return "unknown";
@@ -531,15 +637,18 @@ SAN_INTERFACE void __sanitizer_metadata_covered_add(u32 version,
 SAN_INTERFACE void __sanitizer_metadata_covered_del(u32 version,
                                                     const char* start,
                                                     const char* end) {
-  SAN_LOG("covered metadata del %p-%p", start, end);
+  SAN_LOG("covered metadata (v%u) del %p-%p", version, start, end);
   if (SkipMetadataDel(kSemanticAll, version, start))
     return;
   if (end - start < SizeofRelativePC(version))
     return;
   Lock lock(semantic_mtx);
   auto [mod, _] = FindFunc(ConsumeRelativePC(start, end, version), false);
-  if (SAN_WARN(!mod))
+  if (!mod) {
+    // This is possible with multi-version semantic metadata, where we can get
+    // multiple delete callbacks for the same module.
     return;
+  }
   // All modules (potentially thousands) are unloaded when the program exits,
   // so we avoid compacting them eagerly to avoid quadratic work.
   // Instead we just mark the module as unloaded and delay compaction.
@@ -554,7 +663,7 @@ SAN_INTERFACE void __sanitizer_metadata_covered_del(u32 version,
 SAN_INTERFACE void __sanitizer_metadata_atomics_add(u32 version,
                                                     const char* start,
                                                     const char* end) {
-  SAN_LOG("atomics metadata add %p-%p", start, end);
+  SAN_LOG("atomics metadata (v%u) add %p-%p", version, start, end);
   if (SkipMetadataAdd(kSemanticAtomic, __sanitizer_metadata_atomics_add,
                       version, start, end))
     return;
@@ -590,7 +699,7 @@ SAN_INTERFACE void __sanitizer_metadata_atomics_add(u32 version,
 SAN_INTERFACE void __sanitizer_metadata_atomics_del(u32 version,
                                                     const char* start,
                                                     const char* end) {
-  SAN_LOG("atomics metadata del %p-%p", start, end);
+  SAN_LOG("atomics metadata (v%u) del %p-%p", version, start, end);
   if (SkipMetadataDel(kSemanticAtomic, version, start))
     return;
 
