@@ -643,7 +643,8 @@ SAN_INTERFACE void __sanitizer_metadata_covered_del(u32 version,
   if (end - start < SizeofRelativePC(version))
     return;
   Lock lock(semantic_mtx);
-  auto [mod, _] = FindFunc(ConsumeRelativePC(start, end, version), false);
+  const char* entry = start;  // advanced by ConsumeRelativePC()
+  auto [mod, _] = FindFunc(ConsumeRelativePC(entry, end, version), false);
   if (!mod) {
     // This is possible with multi-version semantic metadata, where we can get
     // multiple delete callbacks for the same module.
