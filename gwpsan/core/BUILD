@@ -205,6 +205,12 @@ cc_fuzz_test(
     ],
 )
 
+gwpsan_test_library(
+    name = "semantic_metadata_test_linkstatic",
+    srcs = ["semantic_metadata_test_linkstatic.cpp"],
+    sanitize_metadata = 1,
+)
+
 gwpsan_test(
     name = "semantic_metadata_test",
     srcs = ["semantic_metadata_test.cpp"],
@@ -216,6 +222,7 @@ gwpsan_test(
     sanitize_metadata = 1,
     deps = [
         ":core",
+        ":semantic_metadata_test_linkstatic",
         "@googletest//:gtest_main",
         "@abseil-cpp//absl/time",
         "//gwpsan/base",
@@ -264,12 +271,41 @@ cc_binary(
     linkshared = 1,
 )
 
+gwpsan_test_library(
+    name = "semantic_metadata_test_linkstatic_mixedcm",
+    srcs = ["semantic_metadata_test_linkstatic.cpp"],
+    copts = select({
+        # TODO(elver): Switch this to -mcmodel=large when Clang 19 is released.
+        # Until then, this test is not actually testing mixed code models.
+        "@platforms//cpu:x86_64": ["-mcmodel=small"],
+        # This currently only works on x86, because arm64 wants -fno-pic with
+        # -mcmodel=large, but that causes other problems.
+        "@platforms//cpu:aarch64": ["-mcmodel=small"],
+    }),
+    sanitize_metadata = 1,
+)
+
+# Test for mixed-version semantic metadata by mixing code models.
+gwpsan_test(
+    name = "semantic_metadata_test_mixedcm",
+    srcs = ["semantic_metadata_test.cpp"],
+    copts = common_test_copts + ["-mcmodel=small"],
+    data = [
+        ":semantic_metadata_test_lib1.so",
+        ":semantic_metadata_test_lib2.so",
+        ":semantic_metadata_test_lib3.so",
+    ],
+    sanitize_metadata = 1,
+    deps = [
+        ":core",
+        ":semantic_metadata_test_linkstatic_mixedcm",
+        "@googletest//:gtest_main",
+        "@abseil-cpp//absl/time",
+        "//gwpsan/base",
+    ],
+)
+
 # This target can be injected into binaries to benchmark effect of watchpoints on execution.
-# For example:
-#
-#   blaze build --cpp_link_extra_libs=//gwpsan/core:breakmanager_perf_test \
-#       //net/rpc2/benchmark:rpc2-benchmark -c opt
-#
 # The target creates max number of watchpoints and they are inherited by all threads,
 # but the watchpoints stay disabled and never fire.
 # If -gwpsan_arm_watchpoints flag is passed to the program, then all watchpoints are also armed

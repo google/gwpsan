@@ -29,6 +29,10 @@
 #include "gwpsan/base/optional.h"
 
 namespace gwpsan {
+
+uptr ExternNoAtomicFunc();
+uptr ExternAtomicFunc();
+
 namespace {
 
 SAN_CONSTRUCTOR void TestInit() {
@@ -45,7 +49,7 @@ SAN_NOINSTR void DummyFunc() {
   var = 1;
 }
 
-SAN_NOINSTR uptr AtomicFunc() {
+SAN_NOINSTR uptr AtomicFuncPrecise() {
   var = 1;
 atomic_op:
   // Use builtin atomic, because with compiler instrumentation enabled,
@@ -55,57 +59,16 @@ atomic_op:
   return reinterpret_cast<uptr>(&&atomic_op) + 0;
 }
 
-int ToInt(Optional<bool> v) {
-  return v ? v.value() ? 1 : 0 : -1;
+SAN_NOINSTR uptr AtomicFunc() {
+  var = var + 1;
+  __atomic_store_n(&var, 1, __ATOMIC_RELAXED);
+  var = var - 1;
+here:
+  return reinterpret_cast<uptr>(&&here) + 0;
 }
 
-TEST(SemanticMetadata, Atomic) {
-  if (GWPSAN_ARM64 || GWPSAN_INSTRUMENTED || GWPSAN_OPTIMIZE <= 1)
-    GTEST_SKIP() << "Generated code at 'atomic_op' not PC of atomic store";
-  EXPECT_FALSE(IsAtomicPC(0));
-  EXPECT_FALSE(IsAtomicPC(uptr{-1ull}));
-  EXPECT_FALSE(IsAtomicPC(reinterpret_cast<uptr>(&var)));
-  const uptr dummy_func = reinterpret_cast<uptr>(&DummyFunc);
-  EXPECT_EQ(ToInt(IsAtomicPC(dummy_func)), 0);
-  EXPECT_EQ(ToInt(IsAtomicPC(dummy_func + 1)), 0);
-  uptr atomic_op = AtomicFunc();
-  EXPECT_EQ(__atomic_load_n(&avar, __ATOMIC_RELAXED), 42);
-  const uptr atomic_func = reinterpret_cast<uptr>(&AtomicFunc);
-  EXPECT_EQ(ToInt(IsAtomicPC(atomic_func)), 0);
-  EXPECT_EQ(ToInt(IsAtomicPC(atomic_op)), 1);
-  EXPECT_EQ(ToInt(IsAtomicPC(atomic_op + 1)), 0);
-}
-
-void UARFunc() {
-  int local = 0;
-  SAN_UNUSED static volatile int* volatile sink;
-  sink = &local;
-}
-
-TEST(SemanticMetadata, UAR) {
-  EXPECT_FALSE(IsUARFunctionStart(0));
-  EXPECT_FALSE(IsUARFunctionStart(-1ull));
-  EXPECT_FALSE(IsUARFunctionStart(reinterpret_cast<uptr>(&var)));
-  const uptr dummy_func = reinterpret_cast<uptr>(&DummyFunc);
-  EXPECT_FALSE(IsUARFunctionStart(dummy_func));
-  EXPECT_FALSE(IsUARFunctionStart(dummy_func + 1));
-  const uptr uar_func = reinterpret_cast<uptr>(&UARFunc);
-  auto stack_args = IsUARFunctionStart(uar_func);
-  EXPECT_TRUE(stack_args);
-  EXPECT_EQ(*stack_args, 0);
-  EXPECT_FALSE(IsUARFunctionStart(uar_func + 1));
-}
-
+// Function + function size pair.
 using Func = Pair<uptr, uptr>;
-
-Func GetFunc(void* lib, const char* name) {
-  uptr fn = reinterpret_cast<uptr>(dlsym(lib, name));
-  EXPECT_NE(fn, 0) << name;
-  uptr end = reinterpret_cast<uptr (*)()>(fn)();
-  EXPECT_GT(end, fn) << name;
-  EXPECT_LT(end - fn, 1000) << name;
-  return {fn, end};
-}
 
 void CheckUncovered(Func fn) {
   for (uptr pc = fn.first; pc < fn.second; ++pc)
@@ -128,6 +91,68 @@ void CheckAtomics(Func fn) {
     count += *atomic;
   }
   ASSERT_EQ(count, 1);
+}
+
+int ToInt(Optional<bool> v) {
+  return v ? v.value() ? 1 : 0 : -1;
+}
+
+TEST(SemanticMetadata, Atomic) {
+  EXPECT_FALSE(IsAtomicPC(0));
+  EXPECT_FALSE(IsAtomicPC(uptr{-1ull}));
+  EXPECT_FALSE(IsAtomicPC(reinterpret_cast<uptr>(&var)));
+  const uptr dummy_func = reinterpret_cast<uptr>(&DummyFunc);
+  EXPECT_EQ(ToInt(IsAtomicPC(dummy_func)), 0);
+  EXPECT_EQ(ToInt(IsAtomicPC(dummy_func + 1)), 0);
+  CheckAtomics({reinterpret_cast<uptr>(AtomicFunc), AtomicFunc()});
+
+  if (!GWPSAN_ARM64 && !GWPSAN_INSTRUMENTED && GWPSAN_OPTIMIZE > 1) {
+    // Requires: Generated code at 'atomic_op' not PC of atomic store.
+    uptr atomic_op = AtomicFuncPrecise();
+    EXPECT_EQ(__atomic_load_n(&avar, __ATOMIC_RELAXED), 42);
+    const uptr atomic_func = reinterpret_cast<uptr>(&AtomicFuncPrecise);
+    EXPECT_EQ(ToInt(IsAtomicPC(atomic_func)), 0);
+    EXPECT_EQ(ToInt(IsAtomicPC(atomic_op)), 1);
+    EXPECT_EQ(ToInt(IsAtomicPC(atomic_op + 1)), 0);
+  }
+}
+
+// Checks that extern functions linked into the binary are intepreted correctly.
+// This also tests multi-version semantic metadata, where the linked TU has a
+// different semantic metadata version (such as when it has a different CM).
+TEST(SemanticMetadata, ExternAtomic) {
+  CheckNoAtomics(
+      {reinterpret_cast<uptr>(ExternNoAtomicFunc), ExternNoAtomicFunc()});
+  CheckAtomics({reinterpret_cast<uptr>(ExternAtomicFunc), ExternAtomicFunc()});
+}
+
+void UARFunc() {
+  int local = 0;
+  SAN_UNUSED static volatile int* volatile sink;
+  sink = &local;
+}
+
+TEST(SemanticMetadata, UAR) {
+  EXPECT_FALSE(IsUARFunctionStart(0));
+  EXPECT_FALSE(IsUARFunctionStart(-1ull));
+  EXPECT_FALSE(IsUARFunctionStart(reinterpret_cast<uptr>(&var)));
+  const uptr dummy_func = reinterpret_cast<uptr>(&DummyFunc);
+  EXPECT_FALSE(IsUARFunctionStart(dummy_func));
+  EXPECT_FALSE(IsUARFunctionStart(dummy_func + 1));
+  const uptr uar_func = reinterpret_cast<uptr>(&UARFunc);
+  auto stack_args = IsUARFunctionStart(uar_func);
+  EXPECT_TRUE(stack_args);
+  EXPECT_EQ(*stack_args, 0);
+  EXPECT_FALSE(IsUARFunctionStart(uar_func + 1));
+}
+
+Func GetFunc(void* lib, const char* name) {
+  uptr fn = reinterpret_cast<uptr>(dlsym(lib, name));
+  EXPECT_NE(fn, 0) << name;
+  uptr end = reinterpret_cast<uptr (*)()>(fn)();
+  EXPECT_GT(end, fn) << name;
+  EXPECT_LT(end - fn, 1000) << name;
+  return {fn, end};
 }
 
 constexpr char kLib1Name[] =
