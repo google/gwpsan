@@ -385,7 +385,6 @@ TEST_F(RaceDetectorTest, MemcpyReadRace) {
   exp_write.size = ByteSize(1);
   exp_write.is_write = true;
   exp_write.is_atomic = false;
-  exp_write.pc = reinterpret_cast<uptr>(&memcpy);
   ExpectAllDataRaces(exp_read, exp_write);
 }
 
@@ -402,7 +401,6 @@ TEST_F(RaceDetectorTest, MemcpyWriteRace) {
   exp_read.size = ByteSize(2);
   exp_read.is_read = true;
   exp_read.is_atomic = false;
-  exp_read.pc = reinterpret_cast<uptr>(&memcpy);
   ExpectAllDataRaces(exp_read, exp_write);
 }
 
