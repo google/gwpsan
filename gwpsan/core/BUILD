@@ -15,7 +15,7 @@
 # The core libraries contain core runtime code shared across sanitizers.
 
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
-load("//gwpsan/base:defs.bzl", "common_test_copts", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
+load("//gwpsan/base:defs.bzl", "common_features", "common_test_copts", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
 
 package(
     default_applicable_licenses = ["//:license"],
@@ -196,6 +196,7 @@ cc_fuzz_test(
     testonly = 1,
     srcs = ["decoder_fuzzer.cpp"],
     copts = common_test_copts,
+    features = common_features,
     restricted_to = supported_architectures,
     deps = [
         ":core",
@@ -237,6 +238,7 @@ cc_binary(
         "-fno-sanitize=all",
         "-fexperimental-sanitize-metadata=atomics,uar",
     ],
+    features = common_features,
     linkshared = 1,
     deps = [":semantic_metadata_test_lib1_uncovered"],
 )
@@ -245,6 +247,7 @@ cc_library(
     name = "semantic_metadata_test_lib1_uncovered",
     testonly = 1,
     srcs = ["semantic_metadata_test_lib1_uncovered.cpp"],
+    features = common_features,
     linkstatic = 1,
     alwayslink = 1,
 )
@@ -257,6 +260,7 @@ cc_binary(
         "-fno-sanitize=all",
         "-fexperimental-sanitize-metadata=atomics,uar",
     ],
+    features = common_features,
     linkshared = 1,
 )
 
@@ -268,6 +272,7 @@ cc_binary(
         "-fno-sanitize=all",
         "-fexperimental-sanitize-metadata=atomics,uar",
     ],
+    features = common_features,
     linkshared = 1,
 )
 

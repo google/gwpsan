@@ -65,6 +65,11 @@ nosanitize_metadata_copts = ["-fno-experimental-sanitize-metadata=all"]
 # sensible to actually restrict the build.
 supported_architectures = None
 
+# If the Bazel Toolchain supports GWPSan directly, assume the below feature
+# names are used for compiler metadata and linking runtime respectively. Remove
+# both from GWPSan internals itself (we add flags explicitly to tests).
+common_features = ["-gwpsan_metadata", "-gwpsan_runtime"]
+
 def gwpsan_library(
         name,
         copts = common_copts,
@@ -74,13 +79,16 @@ def gwpsan_library(
         linkstatic = 1,
         alwayslink = 0,
         restricted_to = supported_architectures,
+        features = [],
         **kwargs):
+    final_features = features + common_features
     native.cc_library(
         name = name,
         copts = copts,
         linkstatic = linkstatic,
         alwayslink = alwayslink,
         restricted_to = restricted_to,
+        features = final_features,
         **kwargs
     )
     if not alwayslink:
@@ -98,16 +106,19 @@ def gwpsan_test_library(
         alwayslink = 1,
         sanitize_metadata = 0,
         restricted_to = supported_architectures,
+        features = [],
         **kwargs):
     if sanitize_metadata:
         final_copts = copts + sanitize_metadata_copts
     else:
         final_copts = copts + nosanitize_metadata_copts
+    final_features = features + common_features
     native.cc_library(
         copts = final_copts,
         linkstatic = linkstatic,
         alwayslink = alwayslink,
         restricted_to = restricted_to,
+        features = final_features,
         testonly = 1,
         **kwargs
     )
@@ -119,6 +130,7 @@ def gwpsan_test(
         linkstatic = 1,
         sanitize_metadata = 0,
         restricted_to = supported_architectures,
+        features = [],
         tags = [],
         **kwargs):
     if sanitize_metadata:
@@ -130,11 +142,13 @@ def gwpsan_test(
     # and interceptors which may introduce backwards references, e.g. pthread_create
     # in thread/thread.pic.o refers to gwp_sanitizers/uar/interceptors.pic.o.
     final_linkopts = linkopts + ["-Wl,--warn-backrefs-exclude=*/gwpsan/*"]
+    final_features = features + common_features
     final_tags = tags + ["notsan"]
     native.cc_test(
         copts = final_copts,
         linkstatic = linkstatic,
         restricted_to = restricted_to,
+        features = final_features,
         tags = final_tags,
         linkopts = final_linkopts,
         **kwargs

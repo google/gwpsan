@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("//gwpsan/base:defs.bzl", "common_copts", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
+load("//gwpsan/base:defs.bzl", "common_copts", "common_features", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
 
 package(
     default_applicable_licenses = ["//:license"],
@@ -201,6 +201,7 @@ genrule(
 cc_binary(
     name = "libgwpsan.so",
     copts = common_copts,
+    features = common_features,
     linkshared = 1,
     restricted_to = supported_architectures,
     deps = [":unified"],
