@@ -158,9 +158,7 @@ void ExpectDeath(const std::function<void()>& fn) {
   SAN_CHECK_EQ(WTERMSIG(status), SIGTRAP);
 }
 
-}  // namespace
-
-extern "C" int main() {
+int RealMain() {
   auto& test = SignalTester::singleton().emplace();
   const auto SignalHandler = SignalTester::SignalThunk;
   const auto SigactionHandler =
@@ -262,4 +260,7 @@ extern "C" int main() {
   return 0;
 }
 
+}  // namespace
 }  // namespace gwpsan
+
+int main() { return gwpsan::RealMain(); }

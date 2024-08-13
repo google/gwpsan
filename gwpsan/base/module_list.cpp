@@ -21,7 +21,7 @@
 #include "gwpsan/base/os.h"
 #include "gwpsan/base/string.h"
 
-extern "C" SAN_WEAK_IMPORT int main();
+SAN_WEAK_IMPORT int main();
 
 namespace gwpsan {
 namespace {
