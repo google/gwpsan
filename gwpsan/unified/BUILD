@@ -221,6 +221,7 @@ gwpsan_test_library(
 
 gwpsan_test(
     name = "unified_test",
+    timeout = "long",
     deps = [":unified_test_lib"],
 )
 
