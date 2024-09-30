@@ -198,6 +198,7 @@ cc_fuzz_test(
     copts = common_test_copts,
     features = common_features,
     restricted_to = supported_architectures,
+    tags = ["nomsan"],  # interference with MSan signal interception
     deps = [
         ":core",
         ":test_init",
