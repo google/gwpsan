@@ -39,8 +39,7 @@ common_copts = base_copts + [
     "-fno-asynchronous-unwind-tables",  # No exceptions.
 ] + select({
     "//gwpsan:mode_opt": [
-        # Prefer to produce a smaller runtime.
-        "-Os",
+        "-O2",
         # Stack space in signal handlers is precious.
         "-Wframe-larger-than=512",
     ],
