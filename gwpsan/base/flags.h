@@ -53,7 +53,6 @@ struct FlagDesc {
   const char* const desc;
 };
 
-bool ParseFlagsFromEnv(const char* env, const Span<const FlagDesc>& flags);
 bool ParseFlagsFromStr(char* str, const Span<const FlagDesc>& flags);
 
 }  // namespace gwpsan SAN_LOCAL

@@ -88,12 +88,6 @@ void PrintHelp(const Span<const FlagDesc>& flags) {
 }
 }  // namespace
 
-bool ParseFlagsFromEnv(const char* env, const Span<const FlagDesc>& flags) {
-  char buf[400];  // should be enough for everyone
-  GetEnv(env, buf);
-  return ParseFlagsFromStr(buf, flags);
-}
-
 bool ParseFlagsFromStr(char* str, const Span<const FlagDesc>& flags) {
   bool help = false;
   for (char* next = str; next && *next;) {

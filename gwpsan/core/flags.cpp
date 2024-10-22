@@ -124,7 +124,14 @@ bool InitFlags() {
   SAN_CHECK(ParseFlagsFromStr(buf, descs));
   internal_strncpy(buf, gwpsan_default_flags(), sizeof(buf));
   SAN_CHECK(ParseFlagsFromStr(buf, descs));
-  if (!ParseFlagsFromEnv("GWPSAN_OPTIONS", descs))
+  GetEnv("GWPSAN_OPTIONS", buf);
+  if (!ParseFlagsFromStr(buf, descs))
+    return false;
+  // GWPSan users need to ensure that any other command-line parsers will accept
+  // the --gwpsan_options flag. The command-line argument has highest priority
+  // and overrides preceding options sources.
+  GetCommandLineArg("--gwpsan_options", buf);
+  if (!ParseFlagsFromStr(buf, descs))
     return false;
   flags.log |= flags.log_path != nullptr;
   flags.halt_on_error |= flags.abort_on_error;
