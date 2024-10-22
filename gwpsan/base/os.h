@@ -51,6 +51,9 @@ inline void SetReadFileMock(const Optional<ReadFileMock>& cb) {
 // Read the environment variable into the provided buffer.
 bool GetEnv(const char* name, Span<char> buf);
 
+// Read the value of a command-line argument with format: --arg=val.
+bool GetCommandLineArg(const char* arg, Span<char> buf);
+
 // Read the process name into the provided buffer.
 bool ReadProcessName(Span<char> buf);
 

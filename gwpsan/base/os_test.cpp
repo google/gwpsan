@@ -27,11 +27,15 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/flags/flag.h"
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/span.h"
 #include "gwpsan/base/syscall.h"
 #include "gwpsan/base/timer.h"
 #include "gwpsan/base/units.h"
+
+// Define flag, otherwise Abseil's flag parser will complain about unknown flag.
+ABSL_FLAG(std::string, flag_for_gwpsan_os_test, "", "Test flag");
 
 namespace gwpsan {
 namespace {
@@ -111,6 +115,19 @@ TEST(OS, GetEnv) {
   // Check that we covered both existing and non-existing vars.
   EXPECT_NE(found, 0);
   EXPECT_NE(not_found, 0);
+}
+
+TEST(OS, GetCommandLineArg) {
+  const std::string expect_flag = absl::GetFlag(FLAGS_flag_for_gwpsan_os_test);
+  if (expect_flag.empty())
+    GTEST_SKIP() << "--flag_for_gwpsan_os_test unset";
+
+  char buf[512];
+  memset(buf, 1, sizeof(buf));
+  EXPECT_TRUE(GetCommandLineArg("--flag_for_gwpsan_os_test", buf));
+  EXPECT_EQ(expect_flag, buf);
+  EXPECT_FALSE(GetCommandLineArg("--flag_for_gwpsan_os_test_unknown", buf));
+  EXPECT_EQ(buf[0], 0);
 }
 
 TEST(OS, ReadProcessName) {

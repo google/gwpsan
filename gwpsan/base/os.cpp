@@ -109,40 +109,51 @@ Result<uptr> ReadFile(const char* path, Span<char> buf) {
 }
 
 namespace {
-bool GetEnvImpl(const char* name, Span<char> buf, Span<char> file) {
-  auto res = ReadFile("/proc/self/environ", file);
-  if (!res || !res.val())
-    return false;
-  uptr name_len = internal_strlen(name);
-  const char* pos = file.data();
+// Parses a list of \0 delimited key=values.
+bool GetKeyValue(const char* key, Span<const char> kvs, Span<char> out) {
+  uptr key_len = internal_strlen(key);
+  const char* pos = kvs.data();
   for (;;) {
     const char* endp = static_cast<char*>(
-        internal_memchr(pos, 0, res.val() - (pos - file.data())));
+        internal_memchr(pos, 0, kvs.size() - (pos - kvs.data())));
     if (endp == pos || !endp)
       return false;
-    if (internal_memcmp(pos, name, name_len) || pos[name_len] != '=') {
+    if (internal_memcmp(pos, key, key_len) || pos[key_len] != '=') {
       pos = endp + 1;
       continue;
     }
-    internal_strncpy(buf.data(), pos + name_len + 1, buf.size());
-    buf.back() = 0;
+    internal_strncpy(out.data(), pos + key_len + 1, out.size());
+    out.back() = 0;
     return true;
   }
 }
-}  // namespace
 
-bool GetEnv(const char* name, Span<char> buf) {
-  buf.at(0) = 0;
+bool GetKeyValueFromFile(const char* path, const char* key, Span<char> buf) {
+  buf.at(0) = 0;  // In case of error, clear buf.
   // /proc/self/environ can be potentially very large and we don't know
   // the size ahead of time (stat says it's 0). So use a huge buffer and rely
   // on OS lazy allocation. The same approach we use in InitModuleList.
   constexpr uptr kFileSize = 256 << 20;
-  char* file = Mmap(kFileSize);
-  if (!file)
+  Span<char> file_buf = {Mmap(kFileSize), kFileSize};
+  if (!file_buf.data())
     return false;
-  bool res = GetEnvImpl(name, buf, {file, kFileSize});
-  Munmap(file, kFileSize);
-  return res;
+  auto cleanup_f = [&] { Munmap(file_buf.data(), file_buf.size()); };
+  const CleanupRef cleanup(cleanup_f);
+  auto file_size = ReadFile(path, file_buf);
+  if (!file_size || !file_size.val())
+    return false;
+  SAN_DCHECK_LE(file_size.val(), file_buf.size());
+  Span<const char> file_contents = {file_buf.data(), file_size.val()};
+  return GetKeyValue(key, file_contents, buf);
+}
+}  // namespace
+
+bool GetEnv(const char* name, Span<char> buf) {
+  return GetKeyValueFromFile("/proc/self/environ", name, buf);
+}
+
+bool GetCommandLineArg(const char* arg, Span<char> buf) {
+  return GetKeyValueFromFile("/proc/self/cmdline", arg, buf);
 }
 
 bool ReadProcessName(Span<char> buf) {

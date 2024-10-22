@@ -175,6 +175,7 @@ gwpsan_test(
         "vector_test.cpp",
         "weak_imports_test.cpp",
     ],
+    args = ["--flag_for_gwpsan_os_test=hello"],
     env = {
         "GWPSAN_GETENV_TEST_EMPTY": "",
         "GWPSAN_GETENV_TEST_NONEMPTY": "nonempty",
@@ -185,6 +186,7 @@ gwpsan_test(
         ":test_utils",
         "@googletest//:gtest_main",
         "@abseil-cpp//absl/debugging:symbolize",
+        "@abseil-cpp//absl/flags:flag",
         "@re2//:re2",
     ],
 )
