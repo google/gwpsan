@@ -87,7 +87,7 @@ genrule(
           " $$(ls -1 $(locations //gwpsan/import:drdecode) | grep '\\.a$$')" +
           " $(location //gwpsan/base:base_output)",
     restricted_to = supported_architectures,
-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
 GWPSAN_INTERCEPTED = [
@@ -120,7 +120,7 @@ genrule(
           "     echo \"$${sym} gwpsan.$${sym}\" >> $(location unified_redefine.syms);" +
           "     echo \"gwpsan.$${sym}\" >> $(location unified_localize.syms); done",
     restricted_to = supported_architectures,
-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
 # Build internalized runtime library that does not use/export any functions
@@ -150,7 +150,7 @@ genrule(
               "//conditions:default": "",
           }),
     restricted_to = supported_architectures,
-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
 GWPSAN_LINKOPTS = [
@@ -194,7 +194,7 @@ genrule(
     outs = ["libgwpsan.a"],
     cmd = "$(AR) qcs $@ $<",
     restricted_to = supported_architectures,
-    toolchains = ["@bazel_tools//tools/cpp:current_cc_toolchain"],
+    toolchains = ["@bazel_tools//tools/cpp:toolchain_type"],
 )
 
 # Shared library for shipping as a binary that can be LD_PRELOAD'ed.
