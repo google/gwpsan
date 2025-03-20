@@ -112,6 +112,12 @@
 #define SAN_DIAGNOSE_AS3(name) \
   __attribute__((diagnose_as_builtin(__builtin_##name, 1, 2, 3)));
 
+#define SAN_PUSH_DIAG(diag)                                         \
+  _Pragma("clang diagnostic push");                                 \
+  _Pragma("clang diagnostic ignored \"-Wunknown-warning-option\""); \
+  _Pragma(SAN_STRINGIFY(clang diagnostic ignored diag))
+#define SAN_POP_DIAG() _Pragma("clang diagnostic pop")
+
 namespace gwpsan SAN_LOCAL {
 
 typedef unsigned char u8;

@@ -55,6 +55,7 @@ bool GwpsanInit() {
   return BreakManager::singleton().try_emplace(cfg) && unified.try_emplace();
 }
 
+SAN_PUSH_DIAG("-Wglobal-constructors");
 SAN_CONSTRUCTOR void GwpsanInitCtor() {
   if (!GwpsanInit()) {
     SAN_LOG("failed to initialize");
@@ -63,6 +64,7 @@ SAN_CONSTRUCTOR void GwpsanInitCtor() {
   }
   SAN_LOG("started");
 }
+SAN_POP_DIAG();
 
 auto* resolve_fork() {
   if (___interceptor_fork)

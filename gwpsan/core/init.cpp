@@ -120,6 +120,7 @@ void LogMetric(const MetricRef& m) {
   }
 }
 
+SAN_PUSH_DIAG("-Wglobal-constructors");
 SAN_DESTRUCTOR void CoreDtor() {
   if (!inited) {
     // If never initialized, it may be unsafe to do anything else on
@@ -137,6 +138,7 @@ SAN_DESTRUCTOR void CoreDtor() {
     Die();
   }
 }
+SAN_POP_DIAG();
 
 volatile bool unpaused = false;
 
