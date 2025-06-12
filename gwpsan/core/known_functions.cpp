@@ -32,8 +32,16 @@
 namespace gwpsan {
 
 // These are defined in C23, but tcmalloc already intercepts them.
-extern "C" SAN_WEAK_IMPORT void free_sized(void*, size_t);
-extern "C" SAN_WEAK_IMPORT void free_aligned_sized(void*, size_t, size_t);
+extern "C" SAN_WEAK_IMPORT void free_sized(void*, size_t)
+#ifdef __GLIBC__
+    noexcept
+#endif
+    ;
+extern "C" SAN_WEAK_IMPORT void free_aligned_sized(void*, size_t, size_t)
+#ifdef __GLIBC__
+    noexcept
+#endif
+    ;
 
 extern "C" SAN_WEAK_IMPORT void gwpsan_real_memset();
 extern "C" SAN_WEAK_IMPORT void gwpsan_real_memcpy();
