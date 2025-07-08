@@ -43,6 +43,33 @@ namespace {
 
 constexpr uptr kStackSize = 128 << 10;
 
+#if GWPSAN_ARM64
+// Ensures cache coherency for self-modifying code on ARM64. Cleans the data
+// cache and invalidates the instruction cache for the given range. The code
+// sequence is documented in Arm ARM (section B2.7.4.2 in DDI0487L.a).
+void FlushInstructionCache(const void* start_addr, uptr size) {
+  const uptr start = reinterpret_cast<uptr>(start_addr);
+  const uptr end = start + size;
+
+  u64 ctr;
+  asm volatile("mrs %0, ctr_el0" : "=r"(ctr));
+  uptr dsize = 4 << ((ctr >> 16) & 0xf);
+  uptr isize = 4 << ((ctr >> 0) & 0xf);
+
+  for (uptr addr = RoundDownTo(start, dsize); addr < end; addr += dsize) {
+    asm volatile("dc cvau, %0" : : "r"(addr) : "memory");
+  }
+  asm volatile("dsb ish" : : : "memory");
+  for (uptr addr = RoundDownTo(start, isize); addr < end; addr += isize) {
+    asm volatile("ic ivau, %0" : : "r"(addr) : "memory");
+  }
+  asm volatile("dsb ish" : : : "memory");
+  asm volatile("isb" : : : "memory");
+}
+#else
+void FlushInstructionCache(const void* start_addr, uptr size) {}
+#endif
+
 class RecordingCallback final : public Env::Callback {
  public:
   struct Access {
@@ -222,6 +249,7 @@ void InstructionExecutor::Execute(const Span<const u8>& code,
   // raise exceptions, call syscalls during fuzzing or transfer control for
   // simplicity.
   memcpy(code_, code_copy_, sizeof(code_copy_));
+  FlushInstructionCache(code_mmap_, kPageSize);
   uptr next_pc =
       reinterpret_cast<uptr>(code_) + prologue.size() + dec.GetByteSize();
   bool executable = !cb.non_executable_access() && !cb.exception() &&
