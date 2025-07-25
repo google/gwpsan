@@ -14,6 +14,8 @@
 
 """cc_implicit_output rule to expose implicit outputs from cc_library"""
 
+load("//third_party/bazel_rules/rules_cc/cc/common:cc_info.bzl", "CcInfo")
+
 def _get_file_from_list(artifacts, file_short_path):
     for artifact in artifacts:
         if artifact != None and artifact.short_path == file_short_path:
