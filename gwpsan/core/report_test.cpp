@@ -14,6 +14,9 @@
 
 #include "gwpsan/core/report.h"
 
+#include <signal.h>
+#include <sys/time.h>
+
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -48,6 +51,14 @@ SAN_NOINLINE extern "C" void MyCaller(volatile int* data) {
   NoInline();
 }
 
+volatile int data = 0;
+volatile bool signal_fired = false;
+
+SAN_NOINLINE extern "C" void SigprofHandler(int sig) {
+  MyCaller(&data);
+  signal_fired = true;
+}
+
 struct StackCapturer : BreakManager::Callback {
   Array<uptr, 128> stack;
   uptr size;
@@ -64,8 +75,12 @@ TEST(UnwindStack, Basic) {
   ScopedBreakManagerSingleton<> mgr(ok);
   ASSERT_TRUE(ok);
   StackCapturer capturer;
-  volatile int data = 0;
-  for (bool main : {true, false}) {
+  struct sigaction oldact = {};
+  struct sigaction act = {};
+  act.sa_handler = SigprofHandler;
+  ASSERT_NE(sigaction(SIGALRM, &act, &oldact), -1);
+  enum UnwindType { kMain, kThread, kSyncSignal, kAsyncSignal };
+  for (UnwindType type : {kMain, kThread, kSyncSignal, kAsyncSignal}) {
     for (uptr max_size : {12, 64}) {
       capturer.size = 0;
       capturer.max_size = max_size;
@@ -73,40 +88,90 @@ TEST(UnwindStack, Basic) {
       // once Arm breakpoints are fixed.
       auto* bp =
           mgr->Watch({Breakpoint::Type::kReadWrite, &data, Sizeof(data)});
-      if (main) {
-        MyCaller(&data);
-      } else {
-        std::thread th([&data]() { MyCaller(&data); });
-        th.join();
+      switch (type) {
+        case kMain: {
+          MyCaller(&data);
+          break;
+        }
+        case kThread: {
+          std::thread th([]() { MyCaller(&data); });
+          th.join();
+          break;
+        }
+        case kSyncSignal: {
+          raise(SIGALRM);
+          break;
+        }
+        case kAsyncSignal: {
+          signal_fired = false;
+          itimerval interval = {};
+          interval.it_value.tv_usec = 1000;
+          ASSERT_NE(setitimer(ITIMER_REAL, &interval, nullptr), -1);
+          while (!signal_fired) {
+          }
+          break;
+        }
+        default:
+          ASSERT_TRUE(false) << "unhandled unwind type: " << type;
       }
       mgr->Unwatch(bp);
-      Printf("main=%d max_size=%zu size=%zu:\n", main, max_size, capturer.size);
+      Printf("type=%d max_size=%zu size=%zu:\n", static_cast<int>(type),
+             max_size, capturer.size);
       ReportInterceptor interceptor;
       PrintStackTrace({capturer.stack.data(), capturer.size}, "  ");
-      if (main)
-        interceptor.ExpectReport(
-            R"(  #0: [[MODULE]] MyAccess
+      switch (type) {
+        case kMain:
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
   #1: [[MODULE]] MyCaller
   #2: [[MODULE]] gwpsan::(anonymous namespace)::UnwindStack_Basic_Test::TestBody()
   #3: [[MODULE]] testing::.*
 [[SKIP-LINES]])"
 #if GWPSAN_OPTIMIZE >= 2
-            // Only with max. optimizations will main be within first 10 frames.
-            R"(  #[[NUM]]: [[MODULE]] main
+              // Only with max. optimizations will main be within first 10
+              // frames.
+              R"(  #[[NUM]]: [[MODULE]] main
 )"
 #endif
-        );
-      else
-        // Depending on standard library, and optimizations we'll end up with
-        // std::function internals (due to lack of tail call optimizations) or
-        // other possibly unsymbolizable functions in the stack trace as well.
-        // We are limited to testing the start of the trace looks as expected.
-        interceptor.ExpectReport(
-            R"(  #0: [[MODULE]] MyAccess
+          );
+          break;
+        case kThread:
+          // Depending on standard library, and optimizations we'll end up with
+          // std::function internals (due to lack of tail call optimizations) or
+          // other possibly unsymbolizable functions in the stack trace as well.
+          // We are limited to testing the start of the trace looks as expected.
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
   #1: [[MODULE]] MyCaller
 [[SKIP-LINES]])");
+          break;
+        case kSyncSignal:
+        case kAsyncSignal:
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
+  #1: [[MODULE]] MyCaller
+  #2: [[MODULE]] SigprofHandler
+)"
+#if GWPSAN_X64
+              "  #3: [[MODULE]] __restore_rt\n"
+#else
+              "  #3: [[MODULE]] __kernel_rt_sigreturn\n"
+#endif
+              "[[SKIP-LINES]]"
+#if GWPSAN_OPTIMIZE >= 2
+              // Only with max. optimizations will main be within first 10
+              // frames.
+              R"(  #[[NUM]]: [[MODULE]] main
+)"
+#endif
+          );
+          break;
+        default:
+          ASSERT_TRUE(false) << "unhandled unwind type: " << type;
+      }
     }
   }
+  ASSERT_NE(sigaction(SIGALRM, &oldact, nullptr), -1);
 }
 
 }  // namespace
