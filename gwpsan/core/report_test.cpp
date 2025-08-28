@@ -65,7 +65,8 @@ TEST(UnwindStack, Basic) {
   ASSERT_TRUE(ok);
   StackCapturer capturer;
   volatile int data = 0;
-  for (bool main : {true, false}) {
+  enum UnwindType { kMain, kThread };
+  for (UnwindType type : {kMain, kThread}) {
     for (uptr max_size : {12, 64}) {
       capturer.size = 0;
       capturer.max_size = max_size;
@@ -73,38 +74,53 @@ TEST(UnwindStack, Basic) {
       // once Arm breakpoints are fixed.
       auto* bp =
           mgr->Watch({Breakpoint::Type::kReadWrite, &data, Sizeof(data)});
-      if (main) {
-        MyCaller(&data);
-      } else {
-        std::thread th([&data]() { MyCaller(&data); });
-        th.join();
+      switch (type) {
+        case kMain: {
+          MyCaller(&data);
+          break;
+        }
+        case kThread: {
+          std::thread th([&data]() { MyCaller(&data); });
+          th.join();
+          break;
+        }
+        default:
+          ASSERT_TRUE(false) << "unhandled unwind type: " << type;
       }
       mgr->Unwatch(bp);
-      Printf("main=%d max_size=%zu size=%zu:\n", main, max_size, capturer.size);
+      Printf("type=%d max_size=%zu size=%zu:\n", static_cast<int>(type),
+             max_size, capturer.size);
       ReportInterceptor interceptor;
       PrintStackTrace({capturer.stack.data(), capturer.size}, "  ");
-      if (main)
-        interceptor.ExpectReport(
-            R"(  #0: [[MODULE]] MyAccess
+      switch (type) {
+        case kMain:
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
   #1: [[MODULE]] MyCaller
   #2: [[MODULE]] gwpsan::(anonymous namespace)::UnwindStack_Basic_Test::TestBody()
   #3: [[MODULE]] testing::.*
 [[SKIP-LINES]])"
 #if GWPSAN_OPTIMIZE >= 2
-            // Only with max. optimizations will main be within first 10 frames.
-            R"(  #[[NUM]]: [[MODULE]] main
+              // Only with max. optimizations will main be within first 10
+              // frames.
+              R"(  #[[NUM]]: [[MODULE]] main
 )"
 #endif
-        );
-      else
-        // Depending on standard library, and optimizations we'll end up with
-        // std::function internals (due to lack of tail call optimizations) or
-        // other possibly unsymbolizable functions in the stack trace as well.
-        // We are limited to testing the start of the trace looks as expected.
-        interceptor.ExpectReport(
-            R"(  #0: [[MODULE]] MyAccess
+          );
+          break;
+        case kThread:
+          // Depending on standard library, and optimizations we'll end up with
+          // std::function internals (due to lack of tail call optimizations) or
+          // other possibly unsymbolizable functions in the stack trace as well.
+          // We are limited to testing the start of the trace looks as expected.
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
   #1: [[MODULE]] MyCaller
 [[SKIP-LINES]])");
+          break;
+        default:
+          ASSERT_TRUE(false) << "unhandled unwind type: " << type;
+      }
     }
   }
 }
