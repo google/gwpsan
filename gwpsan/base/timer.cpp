@@ -212,7 +212,8 @@ void SampleTimer::AdaptDelay() {
   const Duration now = GetTime(CLOCK_MONOTONIC);
   const Duration wall_delay = now - last_sample_;
   last_sample_ = now;
-  if (SAN_WARN(wall_delay <= Duration()))
+  if (SAN_WARN(wall_delay <= Duration(),
+               "monotonic clock goes backwards by %lld ns", *wall_delay))
     return;  // Time travel? Monotonic clock is broken...
 
   // Let's avoid floating point calculations. Minimum is 1 to avoid div-by-0;
