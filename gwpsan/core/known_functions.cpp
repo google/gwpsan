@@ -54,6 +54,23 @@ extern "C" SAN_WEAK_IMPORT void __msan_memmove();
 // It's not possible to take memchr address because of strange overloads.
 void memchr_alias() asm("memchr");
 
+// In Asan opt build code that calls free() somehow ends up calling
+// __interceptor_free() instead. This happens on KnownFunctions.IsFreePC test,
+// which does not detect free() call. The test ends up with this call:
+//   8e273e:       e8 5d 12 fa ff          call   8839a0 <___interceptor_free>
+// This is not the free symbol, it points only to:
+//   00000000008839a0 0000000000000175 T ___interceptor_free
+//   00000000008839a0 0000000000000175 W __interceptor_free
+// while the actual free symbol is:
+//   0000000000883948 <__interceptor_trampoline_free>:
+//     883948:       e9 53 00 00 00          jmp    8839a0 <___interceptor_free>
+// It's unclear why this happens, for now we check these interceptors as well.
+extern "C" SAN_WEAK_IMPORT void __interceptor_free();
+extern "C" SAN_WEAK_IMPORT void __interceptor_malloc();
+extern "C" SAN_WEAK_IMPORT void __interceptor_calloc();
+extern "C" SAN_WEAK_IMPORT void __interceptor_memchr();
+extern "C" SAN_WEAK_IMPORT void __interceptor_strncmp();
+
 namespace {
 template <typename F, typename... Fs>
 bool Match(uptr pc, F f, Fs... fs) {
@@ -75,7 +92,7 @@ bool IsMallocPC(const CPUContext& ctx, uptr& size, bool& uninit) {
   uninit = true;
   const uptr pc = ctx.reg(kPC).val;
   if (Match(
-          pc, ::malloc, ::valloc, ::pvalloc,
+          pc, ::malloc, __interceptor_malloc, ::valloc, ::pvalloc,
           static_cast<void* (*)(std::size_t)>(&operator new),
           static_cast<void* (*)(std::size_t, const std::nothrow_t&)>(
               &operator new),
@@ -92,7 +109,7 @@ bool IsMallocPC(const CPUContext& ctx, uptr& size, bool& uninit) {
     size = ctx.reg(kArgRegs[0]).val;
   } else if (Match(pc, ::memalign, ::aligned_alloc)) {
     size = ctx.reg(kArgRegs[1]).val;
-  } else if (Match(pc, ::calloc)) {
+  } else if (Match(pc, ::calloc, __interceptor_calloc)) {
     uninit = false;
     size = ctx.reg(kArgRegs[0]).val * ctx.reg(kArgRegs[1]).val;
   } else {
@@ -107,7 +124,8 @@ bool IsFreePC(const CPUContext& ctx, uptr& ptr, uptr& size) {
   size = 0;
   const uptr pc = ctx.reg(kPC).val;
   if (Match(
-          pc, ::free, static_cast<void (*)(void*)>(&operator delete),
+          pc, ::free, __interceptor_free,
+          static_cast<void (*)(void*)>(&operator delete),
           static_cast<void (*)(void*, const std::nothrow_t&)>(&operator delete),
           static_cast<void (*)(void*, std::align_val_t)>(&operator delete),
           static_cast<void (*)(void*, std::align_val_t, const std::nothrow_t&)>(
@@ -143,7 +161,7 @@ bool IsMemAccessFunc(uptr pc) {
   return Match(pc, ::memset, gwpsan_real_memset, __asan_memset, __msan_memset,
                ::memcpy, ::memmove, gwpsan_real_memcpy, __asan_memcpy,
                __asan_memmove, __msan_memcpy, __msan_memmove, memchr_alias,
-               ::strncmp);
+               ::strncmp, __interceptor_memchr, __interceptor_strncmp);
 }
 
 bool IsMemAccessFunc(const CPUContext& ctx,
@@ -174,10 +192,10 @@ bool IsMemAccessFunc(const CPUContext& ctx,
     SAN_LOG("detected start of memcpy/memmove");
     write(0, 2);
     read(1, 2);
-  } else if (Match(pc, memchr_alias)) {
+  } else if (Match(pc, memchr_alias, __interceptor_memchr)) {
     SAN_LOG("detected start of memchr");
     use(0, 2);
-  } else if (Match(pc, ::strncmp)) {
+  } else if (Match(pc, ::strncmp, __interceptor_strncmp)) {
     SAN_LOG("detected start of strncmp");
     use(0, 2);
     use(1, 2);
