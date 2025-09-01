@@ -53,7 +53,7 @@ std::string ReportRegexp(const char* report) {
 #else
            "__kernel_rt_sigreturn"
 #endif
-           "|\\(unknown\\))"},
+           "|0x[a-f0-9]+ \\(unknown\\))"},
           {"[[ADDR]]", "0x[a-f0-9]+"},
           {"[[NUM]]", "[0-9]+"},
           {"[[SKIP-LINES]]", "(.*\n)*.*"},

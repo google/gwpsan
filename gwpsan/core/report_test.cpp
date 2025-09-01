@@ -17,6 +17,8 @@
 #include <signal.h>
 #include <sys/time.h>
 
+#include <cstddef>
+#include <span>
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -192,6 +194,64 @@ TEST(UnwindStack, Basic) {
     }
   }
   ASSERT_NE(sigaction(SIGALRM, &oldact, nullptr), -1);
+}
+
+SAN_NOINLINE extern "C" size_t CorruptedUnwind(std::span<uptr> stack) {
+  NoInline();
+  size_t size =
+      RawUnwindStack({stack.data(), stack.size()}, __builtin_frame_address(0));
+  NoInline();
+  return size;
+}
+
+SAN_NOINLINE extern "C" size_t CorruptingFrame(std::span<uptr> stack,
+                                               bool frame_or_pc) {
+  NoInline();
+  uptr& frame =
+      reinterpret_cast<uptr*>(__builtin_frame_address(0))[frame_or_pc ? 0 : 1];
+  uptr orig = frame;
+  // We need some PC that always faults, but is not obviously bogus
+  // (e.g. around 0, we filter these earlier). Sanitizers map lots of memory
+  // as shadow, so we use a non-canonical address that we don't filter out.
+  frame = 0x00dead0012345678;
+  NoInline();
+  size_t size = CorruptedUnwind(stack);
+  NoInline();
+  frame = orig;
+  return size;
+}
+
+SAN_NOINLINE extern "C" size_t CorruptedCaller(std::span<uptr> stack,
+                                               bool frame_or_pc) {
+  NoInline();
+  size_t size = CorruptingFrame(stack, frame_or_pc);
+  NoInline();
+  return size;
+}
+
+TEST(UnwindStack, Corrupted) {
+  // Ensure our unwinding procedure does not crash on corrupted stack frames
+  // (both frame pointers and PC values).
+  for (bool frame_or_pc : {true, false}) {
+    Array<uptr, 64> stack;
+    size_t size = CorruptedCaller(stack, frame_or_pc);
+    Printf("frame_or_pc=%d size=%zu:\n", frame_or_pc, size);
+    ReportInterceptor interceptor;
+    PrintStackTrace({stack.data(), size}, "  ");
+    if (frame_or_pc) {
+      interceptor.ExpectReport(
+          R"(  #0: [[MODULE]] CorruptingFrame
+  #1: [[MODULE]] CorruptedCaller
+)");
+    } else {
+      interceptor.ExpectReport(
+          R"(  #0: [[MODULE]] CorruptingFrame
+  #1:  0xdead0012345678 (unknown)
+[[SKIP-LINES]])
+  #[[NUM]]: [[MODULE]] main
+)");
+    }
+  }
 }
 
 }  // namespace

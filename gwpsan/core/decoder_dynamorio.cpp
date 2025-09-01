@@ -14,7 +14,9 @@
 
 #include "gwpsan/core/decoder_dynamorio.h"
 
+#include "gwpsan/import/drdecode/include/dr_api.h"
 #include "gwpsan/base/common.h"
+#include "gwpsan/base/env.h"
 #include "gwpsan/base/log.h"
 #include "gwpsan/base/memory.h"
 #include "gwpsan/base/units.h"
@@ -230,27 +232,31 @@ const char* DynamoRIODecoder::OpcodeName(uptr opcode) {
   return decode_opcode_name(opcode);
 }
 
+inline constexpr DumpWhat DumpNeedDecode = kDumpAsm | kDumpBytes;
+
 LogBuf DumpInstr(uptr pc, uptr pc_copy, DumpWhat what) {
   LogBuf buf;
   // These are used in tests, but also don't crash on nullptr.
   if (pc < (64 << 10))
     return buf.Append("pc=0x%zx", pc);
-  auto noalloc = MakeUniqueFreelist<instr_noalloc_t>();
-  instr_noalloc_init(GLOBAL_DCONTEXT, noalloc.get());
-  instr_t* instr = instr_from_noalloc(noalloc.get());
-  auto next_pc = reinterpret_cast<uptr>(
-      decode_from_copy(GLOBAL_DCONTEXT, reinterpret_cast<u8*>(pc_copy),
-                       reinterpret_cast<u8*>(pc), instr));
-  if (!next_pc || !instr_valid(instr))
-    return buf.Append("failed to decode pc 0x%zx", pc);
-  instr_set_translation(instr, reinterpret_cast<u8*>(pc));
-  if (what & kDumpBytes)
-    buf.Append("%s", &DumpBytesImpl(pc_copy, next_pc - pc_copy));
-  if (what & kDumpAsm) {
-    disassemble_set_syntax(DR_DISASM_DR);
-    LogBuf buf1;
-    instr_disassemble_to_buffer(GLOBAL_DCONTEXT, instr, &buf1, buf1.kSize);
-    buf.Append("%s%s", what & kDumpBytes ? " :: " : "", &buf1);
+  if (what & DumpNeedDecode) {
+    auto noalloc = MakeUniqueFreelist<instr_noalloc_t>();
+    instr_noalloc_init(GLOBAL_DCONTEXT, noalloc.get());
+    instr_t* instr = instr_from_noalloc(noalloc.get());
+    auto next_pc = reinterpret_cast<uptr>(
+        decode_from_copy(GLOBAL_DCONTEXT, reinterpret_cast<u8*>(pc_copy),
+                         reinterpret_cast<u8*>(pc), instr));
+    if (!next_pc || !instr_valid(instr))
+      return buf.Append("failed to decode pc 0x%zx", pc);
+    instr_set_translation(instr, reinterpret_cast<u8*>(pc));
+    if (what & kDumpBytes)
+      buf.Append("%s", &DumpBytesImpl(pc_copy, next_pc - pc_copy));
+    if (what & kDumpAsm) {
+      disassemble_set_syntax(DR_DISASM_DR);
+      LogBuf buf1;
+      instr_disassemble_to_buffer(GLOBAL_DCONTEXT, instr, &buf1, buf1.kSize);
+      buf.Append("%s%s", what & kDumpBytes ? " :: " : "", &buf1);
+    }
   }
   if ((what & (kDumpBytes | kDumpAsm)) && (what & (kDumpPC | kDumpModule)))
     buf.Append(" at");
@@ -263,7 +269,19 @@ LogBuf DumpInstr(uptr pc, uptr pc_copy, DumpWhat what) {
 }
 
 LogBuf DumpInstr(uptr pc, DumpWhat what) {
-  return DumpInstr(pc, pc, what);
+  uptr pc_copy = 0;
+  char code_copy[2 * kMaxInstrLen] = {};
+  if (what & DumpNeedDecode) {
+    // Copy the code so that we don't crash on broken stack frames when trying
+    // to decode bogus PCs. This function is called only from slow paths where
+    // we report/print something, or from tests, so performance is not critical.
+    pc_copy = reinterpret_cast<uptr>(code_copy);
+    if (!NonFailingLoad(Addr(pc), ByteSize(kMaxInstrLen), code_copy)) {
+      LogBuf buf;
+      return buf.Append("pc=0x%zx (faulted)", pc);
+    }
+  }
+  return DumpInstr(pc, pc_copy, what);
 }
 
 }  // namespace gwpsan

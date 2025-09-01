@@ -16,6 +16,7 @@
 
 #include "gwpsan/base/common.h"
 #include "gwpsan/base/env.h"
+#include "gwpsan/base/printf.h"
 #include "gwpsan/base/span.h"
 #include "gwpsan/base/units.h"
 #include "gwpsan/base/weak_imports.h"
@@ -47,13 +48,9 @@ Span<const uptr> RawUnwindStack(Span<uptr> storage) {
 }
 
 void Symbolize(unsigned long pc, char* buf, int buf_size, bool add_src) {
-  constexpr char kUnknown[] = "(unknown)";
-  if (!absl::Symbolize) {
-    internal_strncpy(buf, kUnknown, buf_size);
-    return;
-  }
-  if (!absl::Symbolize(reinterpret_cast<void*>(pc), buf, buf_size)) {
-    internal_strncpy(buf, kUnknown, buf_size);
+  if (!absl::Symbolize ||
+      !absl::Symbolize(reinterpret_cast<void*>(pc), buf, buf_size)) {
+    SPrintf(buf, buf_size, "0x%lx (unknown)", pc);
     return;
   }
   if (add_src)
