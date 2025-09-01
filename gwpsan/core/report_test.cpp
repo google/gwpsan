@@ -14,6 +14,9 @@
 
 #include "gwpsan/core/report.h"
 
+#include <signal.h>
+#include <sys/time.h>
+
 #include <thread>
 
 #include "gtest/gtest.h"
@@ -29,6 +32,9 @@
 
 namespace gwpsan {
 namespace {
+
+volatile int data = 0;
+volatile bool signal_fired = false;
 
 // Trickery to prevent tail calls, optimizations and ensure stable stacks
 // in debug and release builds.
@@ -48,6 +54,11 @@ SAN_NOINLINE extern "C" void MyCaller(volatile int* data) {
   NoInline();
 }
 
+SAN_NOINLINE extern "C" void SigprofHandler(int sig) {
+  MyCaller(&data);
+  signal_fired = true;
+}
+
 struct StackCapturer : BreakManager::Callback {
   Array<uptr, 128> stack;
   uptr size;
@@ -64,9 +75,12 @@ TEST(UnwindStack, Basic) {
   ScopedBreakManagerSingleton<> mgr(ok);
   ASSERT_TRUE(ok);
   StackCapturer capturer;
-  volatile int data = 0;
-  enum UnwindType { kMain, kThread };
-  for (UnwindType type : {kMain, kThread}) {
+  struct sigaction oldact = {};
+  struct sigaction act = {};
+  act.sa_handler = SigprofHandler;
+  ASSERT_NE(sigaction(SIGALRM, &act, &oldact), -1);
+  enum UnwindType { kMain, kThread, kSyncSignal, kAsyncSignal };
+  for (UnwindType type : {kMain, kThread, kSyncSignal, kAsyncSignal}) {
     for (uptr max_size : {12, 64}) {
       capturer.size = 0;
       capturer.max_size = max_size;
@@ -80,8 +94,21 @@ TEST(UnwindStack, Basic) {
           break;
         }
         case kThread: {
-          std::thread th([&data]() { MyCaller(&data); });
+          std::thread th([]() { MyCaller(&data); });
           th.join();
+          break;
+        }
+        case kSyncSignal: {
+          raise(SIGALRM);
+          break;
+        }
+        case kAsyncSignal: {
+          signal_fired = false;
+          itimerval interval = {};
+          interval.it_value.tv_usec = 1000;
+          ASSERT_NE(setitimer(ITIMER_REAL, &interval, nullptr), -1);
+          while (!signal_fired) {
+          }
           break;
         }
         default:
@@ -118,11 +145,26 @@ TEST(UnwindStack, Basic) {
   #1: [[MODULE]] MyCaller
 [[SKIP-LINES]])");
           break;
+        case kSyncSignal:
+        case kAsyncSignal:
+          interceptor.ExpectReport(
+              R"(  #0: [[MODULE]] MyAccess
+  #1: [[MODULE]] MyCaller
+  #2: [[MODULE]] SigprofHandler
+)"
+// With MSan there may be another SignalHandler frame here.
+#if !GWPSAN_INSTRUMENTED_MSAN
+              R"(  #3: [[SIGRETURN_FRAME]]
+)"
+#endif
+              "[[SKIP-LINES]]");
+          break;
         default:
           ASSERT_TRUE(false) << "unhandled unwind type: " << type;
       }
     }
   }
+  ASSERT_NE(sigaction(SIGALRM, &oldact, nullptr), -1);
 }
 
 }  // namespace
