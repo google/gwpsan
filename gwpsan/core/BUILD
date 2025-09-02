@@ -15,6 +15,8 @@
 # The core libraries contain core runtime code shared across sanitizers.
 
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("//gwpsan/base:defs.bzl", "common_features", "common_test_copts", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
 
 package(

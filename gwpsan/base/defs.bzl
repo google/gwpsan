@@ -16,6 +16,8 @@
 This file contains common helpers for all of the GWPSan project.
 """
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("//gwpsan/base:cc_implicit_output.bzl", "cc_implicit_output")
 
 base_copts = [
@@ -81,7 +83,7 @@ def gwpsan_library(
         features = [],
         **kwargs):
     final_features = features + common_features
-    native.cc_library(
+    cc_library(
         name = name,
         copts = copts,
         linkstatic = linkstatic,
@@ -112,7 +114,7 @@ def gwpsan_test_library(
     else:
         final_copts = copts + nosanitize_metadata_copts
     final_features = features + common_features
-    native.cc_library(
+    cc_library(
         copts = final_copts,
         linkstatic = linkstatic,
         alwayslink = alwayslink,
@@ -143,7 +145,7 @@ def gwpsan_test(
     final_linkopts = linkopts + ["-Wl,--warn-backrefs-exclude=*/gwpsan/*"]
     final_features = features + common_features
     final_tags = tags + ["notsan"]
-    native.cc_test(
+    cc_test(
         copts = final_copts,
         linkstatic = linkstatic,
         restricted_to = restricted_to,

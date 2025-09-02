@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("//gwpsan/base:defs.bzl", "common_copts", "common_features", "gwpsan_library", "gwpsan_test", "gwpsan_test_library", "supported_architectures")
 
 package(
