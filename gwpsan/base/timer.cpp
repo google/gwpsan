@@ -212,9 +212,28 @@ void SampleTimer::AdaptDelay() {
   const Duration now = GetTime(CLOCK_MONOTONIC);
   const Duration wall_delay = now - last_sample_;
   last_sample_ = now;
-  if (SAN_WARN(wall_delay <= Duration(),
-               "monotonic clock goes backwards by %lld ns", *wall_delay))
-    return;  // Time travel? Monotonic clock is broken...
+
+  // Check if monotonic time went backwards. Generally this should not happen
+  // provided the kernel is not broken. However, it can happen in some process
+  // migration cases if the migration procedure does not use time namespaces
+  // to restore the monotonic clock.
+  // On one hand, we want to warn about this, but on the other hand, we don't
+  // want to warn too often, and don't want to warn in migration cases.
+  // So we warn once if this happens twice in a row.
+  static bool time_travel = false;
+  if (wall_delay <= Duration()) {
+    if (time_travel) {
+      static bool warned = false;
+      if (!warned) {
+        warned = true;
+        Printf("gwpsan: monotonic clock went backwards by %lld ns\n",
+               *wall_delay);
+      }
+    }
+    time_travel = true;
+    return;
+  }
+  time_travel = false;
 
   // Let's avoid floating point calculations. Minimum is 1 to avoid div-by-0;
   // should that happen, we likely need more than 1 iteration to reach target.
