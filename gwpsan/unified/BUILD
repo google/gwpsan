@@ -114,10 +114,10 @@ genrule(
           # Don't touch externally called functions (compiler callbacks and interceptors).
           " | egrep -v 'gwpsan|__sanitizer_metadata_|__interceptor|" +
           "|".join([s for s in GWPSAN_INTERCEPTED]) + "'" +
-          # Don't touch compiler-generated symbols
-          # (such as from sanitizers, e.g. ___asan_globals_registered).
-          " | egrep -v '\\.|^___'" +
           " | while read sym; do" +
+          # Don't touch compiler-generated symbols (such as from sanitizers,
+          # e.g.  ___asan_globals_registered), but do internalize CFI symbols.
+          "     [[ \"$$sym\" =~ \\.|^___ && ! \"$$sym\" =~ ^__typeid__|\\.cfi ]] && continue;" +
           "     echo \"$${sym} gwpsan.$${sym}\" >> $(location unified_redefine.syms);" +
           "     echo \"gwpsan.$${sym}\" >> $(location unified_localize.syms); done",
     restricted_to = supported_architectures,
