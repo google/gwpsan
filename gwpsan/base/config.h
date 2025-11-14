@@ -35,10 +35,30 @@
 #define GWPSAN_ARM64 0
 #endif
 
-#define GWPSAN_INSTRUMENTED_ASAN __has_feature(address_sanitizer)
-#define GWPSAN_INSTRUMENTED_HWASAN __has_feature(hwaddress_sanitizer)
-#define GWPSAN_INSTRUMENTED_MSAN __has_feature(memory_sanitizer)
-#define GWPSAN_INSTRUMENTED_TSAN __has_feature(thread_sanitizer)
+#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#define GWPSAN_INSTRUMENTED_ASAN 1
+#else
+#define GWPSAN_INSTRUMENTED_ASAN 0
+#endif
+
+#if __has_feature(hwaddress_sanitizer) || defined(__SANITIZE_HWADDRESS__)
+#define GWPSAN_INSTRUMENTED_HWASAN 1
+#else
+#define GWPSAN_INSTRUMENTED_HWASAN 0
+#endif
+
+#if __has_feature(memory_sanitizer) || defined(__SANITIZE_MEMORY__)
+#define GWPSAN_INSTRUMENTED_MSAN 1
+#else
+#define GWPSAN_INSTRUMENTED_MSAN 0
+#endif
+
+#if __has_feature(thread_sanitizer) || defined(__SANITIZE_THREAD__)
+#define GWPSAN_INSTRUMENTED_TSAN 1
+#else
+#define GWPSAN_INSTRUMENTED_TSAN 0
+#endif
+
 #define GWPSAN_INSTRUMENTED_DFSAN __has_feature(dataflow_sanitizer)
 #define GWPSAN_INSTRUMENTED_UBSAN __has_feature(undefined_behavior_sanitizer)
 #define GWPSAN_INSTRUMENTED_COVSAN __has_feature(coverage_sanitizer)
