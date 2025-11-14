@@ -103,6 +103,9 @@ void Use(T v) {
 }
 
 TEST(KnownFunctions, IsMallocPC) {
+  if (GWPSAN_UNKNOWN_ALLOC_ABI)
+    GTEST_SKIP() << "Unknown allocator ABI";
+
   struct Test {
     std::function<void*()> fn;
     uptr size;

@@ -147,6 +147,8 @@ SAN_NOINLINE SAN_OPTNONE void UseOfHeapUninit() {
 }
 
 TEST(UnifiedTool, LMSanHeap) {
+  if (GWPSAN_UNKNOWN_ALLOC_ABI)
+    GTEST_SKIP() << "Unknown allocator ABI";
   if (GWPSAN_INSTRUMENTED_MSAN)
     GTEST_SKIP() << "MSan will detect uninits ahead of us";
   // Note: memchr symbol may look like __memchr_avx2/sse2, or due to other

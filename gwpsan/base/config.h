@@ -71,4 +71,11 @@
    GWPSAN_INSTRUMENTED_DFSAN || GWPSAN_INSTRUMENTED_UBSAN || \
    GWPSAN_INSTRUMENTED_COVSAN)
 
+// Some non-standard allocator ABIs are not supported.
+#if defined(__SANITIZE_ALLOC_TOKEN__)
+#define GWPSAN_UNKNOWN_ALLOC_ABI 1
+#else
+#define GWPSAN_UNKNOWN_ALLOC_ABI 0
+#endif
+
 #endif  // GWPSAN_BASE_CONFIG_H_
