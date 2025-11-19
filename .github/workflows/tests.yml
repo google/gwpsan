@@ -47,8 +47,8 @@ jobs:
           set -e
           sudo apt-get update
           wget https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
-          yes '' | sudo bash /tmp/llvm.sh 18
-          sudo apt-get install -yq libc++-18-dev libc++abi-18-dev
+          yes '' | sudo bash /tmp/llvm.sh 20
+          sudo apt-get install -yq libc++-20-dev libc++abi-20-dev
       - name: Configure system
         # Ubuntu systems disallow perf events completely with the undocumented
         # perf_event_paranoid=4. Restore default kernel setting.
@@ -66,8 +66,8 @@ jobs:
           restore-keys: bazel-cache-${{ matrix.compilation_mode }}-
       - name: Run Bazel tests
         env:
-          CC: clang-18
-          CXX: clang++-18
+          CC: clang-20
+          CXX: clang++-20
         run: |
           set -ue
           case "$(uname -m)" in

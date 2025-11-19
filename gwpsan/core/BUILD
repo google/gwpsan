@@ -283,9 +283,7 @@ gwpsan_test_library(
     name = "semantic_metadata_test_linkstatic_mixedcm",
     srcs = ["semantic_metadata_test_linkstatic.cpp"],
     copts = select({
-        # TODO(elver): Switch this to -mcmodel=large when Clang 19 is released.
-        # Until then, this test is not actually testing mixed code models.
-        "@platforms//cpu:x86_64": ["-mcmodel=small"],
+        "@platforms//cpu:x86_64": ["-mcmodel=large"],
         # This currently only works on x86, because arm64 wants -fno-pic with
         # -mcmodel=large, but that causes other problems.
         "@platforms//cpu:aarch64": ["-mcmodel=small"],
