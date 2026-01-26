@@ -100,7 +100,8 @@ bool NonFailingMemcpy(void* dst, const void* src, uptr size) {
 }
 
 bool InitNonFailing() {
-  return !!SignalHandler<SIGSEGV>::singleton().try_emplace();
+  return !!SignalHandler<SIGSEGV>::singleton().try_emplace() &&
+         !!SignalHandler<SIGBUS>::singleton().try_emplace();
 }
 
 bool HandleNonFailingAccess(int sig, void* uctx) {

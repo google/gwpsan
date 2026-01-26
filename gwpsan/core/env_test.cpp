@@ -65,6 +65,21 @@ TEST(NonFailing, Fails) {
   EXPECT_FALSE(NonFailingStore(Addr(mem + 5 * kPageSize), ByteSize(8), tmp));
 
   munmap(mem, 5 * kPageSize);
+
+  // Accesses to memfd pages, we map 1 page file to 2 pages of memory,
+  // which should cause SIGBUS.
+  int mem_fd = memfd_create("test", 0);
+  ASSERT_GE(mem_fd, 0);
+  ASSERT_EQ(0, ftruncate(mem_fd, kPageSize));
+  mem = static_cast<char*>(mmap(nullptr, 2 * kPageSize, PROT_READ,
+                    MAP_SHARED, mem_fd, 0));
+  ASSERT_NE(mem, MAP_FAILED);
+  close(mem_fd);
+  EXPECT_TRUE(NonFailingLoad(Addr(mem), ByteSize(8), tmp));
+  EXPECT_FALSE(NonFailingStore(Addr(mem), ByteSize(8), tmp));
+  EXPECT_FALSE(NonFailingLoad(Addr(mem + 1 * kPageSize), ByteSize(8), tmp));
+  EXPECT_FALSE(NonFailingStore(Addr(mem + 1 * kPageSize), ByteSize(8), tmp));
+  munmap(mem, 2 * kPageSize);
 }
 
 }  // namespace
