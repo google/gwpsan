@@ -23,6 +23,8 @@ config_setting(
     },
 )
 
+# TEST
+
 config_setting(
     name = "mode_fastbuild",
     values = {
