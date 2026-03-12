@@ -55,6 +55,10 @@ common_copts = base_copts + [
 }) + select({
     # Condition may be true if optimized or unoptimized, so we need another select.
     "//gwpsan:sanitizer_msan": ["-Wno-frame-larger-than"],
+    # HWASan fails to analyze lifetimes without this mllvm flag, and cause
+    # "stack frame size (528) exceeds limit (512)". we could use -Wno-frame-larger-than,
+    # but this improves HWASan codegen as well.
+    "//gwpsan:sanitizer_hwasan": ["-mllvm=-dom-tree-reachability-max-bbs-to-explore=256"],
     "//conditions:default": [],
 })
 

@@ -48,3 +48,10 @@ config_setting(
         ":sanitizer": "msan",
     },
 )
+
+config_setting(
+    name = "sanitizer_hwsan",
+    flag_values = {
+        ":sanitizer": "hwasan",
+    },
+)
