@@ -43,7 +43,7 @@ common_copts = base_copts + [
     "//gwpsan:mode_opt": [
         "-O2",
         # Stack space in signal handlers is precious.
-        "-Wframe-larger-than=512",
+        "-Wframe-larger-than=768",
     ],
     "//conditions:default": [
         # In fastbuild and debug builds we also need to be careful with stack
