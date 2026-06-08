@@ -50,6 +50,7 @@ gwpsan_test_library(
 
 gwpsan_test(
     name = "uar_test",
+    tags = ["nohwasan"],
     deps = [":uar_test_lib"],
 )
 
@@ -57,6 +58,7 @@ gwpsan_test(
     name = "uar_benchmark",
     srcs = ["uar_benchmark.cpp"],
     sanitize_metadata = 1,
+    tags = ["nohwasan"],
     deps = [
         "@google_benchmark//:benchmark_main",
         "//gwpsan/base:external_interface",

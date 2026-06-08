@@ -180,6 +180,7 @@ gwpsan_test(
         "GWPSAN_GETENV_TEST_EMPTY": "",
         "GWPSAN_GETENV_TEST_NONEMPTY": "nonempty",
     },
+    tags = ["nohwasan"],
     deps = [
         ":base",
         ":metric_collection",
@@ -202,11 +203,13 @@ gwpsan_test_library(
 
 gwpsan_test(
     name = "signal_test",
+    tags = ["nohwasan"],
     deps = [":signal_test_lib"],
 )
 
 gwpsan_test(
     name = "signal_test_foreign_interceptor",
     srcs = ["signal_test_foreign_interceptor.cpp"],
+    tags = ["nohwasan"],
     deps = [":signal_test_lib"],
 )
