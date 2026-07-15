@@ -183,6 +183,7 @@ gwpsan_test(
         "breakpoint_benchmark.cpp",
         "context_benchmark.cpp",
     ],
+    tags = ["nohwasan"],
     deps = [
         ":core",
         ":test_init",
