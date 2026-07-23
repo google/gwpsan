@@ -162,7 +162,7 @@ TEST_F(BreakpointTest, Basic) {
   data2 = 1;
   ASSERT_TRUE(
       !!bps_[0].Enable({Breakpoint::Type::kReadWrite, &data1, Sizeof(data1)}));
-  ASSERT_FALSE(bps_[0].Enable(
+  ASSERT_FALSE(!!bps_[0].Enable(
       {Breakpoint::Type::kReadWrite, Addr(0x8080808012345678ul), ByteSize(1)}));
   data1 = 1;
   ASSERT_TRUE(
