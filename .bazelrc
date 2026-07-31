@@ -1,12 +1,16 @@
 # GWPSan depends on Clang. Currently no GCC support is planned.
 build --config=clang
 build --cxxopt=-std=c++20
-build --cxxopt=-Wno-mismatched-tags           # Don't care about Microsoft ABI
+build --copt=-Wno-mismatched-tags             # Don't care about Microsoft ABI
+build --cxxopt=-Wno-mismatched-tags
+build --copt=-Wno-unknown-warning-option      # Allow newer Clang warning flags across LLVM versions
+build --copt=-Wno-character-conversion
 build --copt=--system-header-prefix=external/ # Do not warn in dependencies
+build --repo_env=PIP_CONFIG_FILE=/dev/null    # Ignore corporate /etc/pip.conf in isolated pip wheel builds
 
 # Common flags for Clang
-build:clang --action_env=BAZEL_COMPILER=clang
-build:clang --action_env=CC=clang --action_env=CXX=clang++
+build:clang --action_env=BAZEL_COMPILER=clang --repo_env=BAZEL_COMPILER=clang
+build:clang --action_env=CC=clang --action_env=CXX=clang++ --repo_env=CC=clang --repo_env=CXX=clang++
 build:clang --linkopt=-fuse-ld=lld
 
 # LLVM libc++

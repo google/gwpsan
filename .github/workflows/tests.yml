@@ -76,7 +76,7 @@ jobs:
           esac
           bazel test --test_output=errors -c ${{ matrix.compilation_mode }} \
             --config=dev --config=libc++ "${extra_args[@]}" \
-            --action_env=CC="$CC" --action_env=CXX="$CXX" -- //gwpsan/...
+            --action_env=CC="$CC" --action_env=CXX="$CXX" --repo_env=CC="$CC" --repo_env=CXX="$CXX" -- //gwpsan/...
       - name: Save Bazel cache
         if: github.ref == 'refs/heads/main'
         uses: actions/cache/save@v4

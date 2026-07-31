@@ -56,27 +56,23 @@ cmake(
     # above. Instead we then just have to selectively install what we need.
     install = 0,
     postfix_script = """
-    libs=(
-        libdrdecode.a
-        libdrlibc.a
-    )
-    for x in "${libs[@]}"; do
-        install -D lib64/$x $INSTALLDIR/lib/$x
+    for x in libdrdecode.a libdrlibc.a; do
+        install -D lib64/$$x $$INSTALLDIR/lib/$$x
     done
     for x in include/dr_*.h; do
-        install -D $x $INSTALLDIR/$x
+        install -D $$x $$INSTALLDIR/$$x
     done
     # Configure DynamoRIO:
     (
-        case "$(uname -m)" in
+        case "$$(uname -m)" in
             x86*) arch=X86_64;;
             arm*|aarch*) arch=ARM_64;;
             *) echo "Unknown architecture"; exit 1;;
         esac
-        echo "#define $arch"
+        echo "#define $$arch"
         echo "#define LINUX"
         cat include/dr_defines.h
-    ) > $INSTALLDIR/include/dr_defines.h
+    ) > $$INSTALLDIR/include/dr_defines.h
     """,
     out_static_libs = [
         "libdrdecode.a",

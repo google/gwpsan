@@ -50,7 +50,7 @@ config_setting(
 )
 
 config_setting(
-    name = "sanitizer_hwsan",
+    name = "sanitizer_hwasan",
     flag_values = {
         ":sanitizer": "hwasan",
     },
