@@ -76,6 +76,15 @@ TEST(StoreBuffer, Test) {
         Access{0x103, 2, 0xdddddddddddddddd},
       },
     },
+    // Stores that start before the load address but still overlap it.
+    {
+      0xbbbbbbbb, Access{0x104, 4, 0xaaaaaaaa},
+      {Access{0x100, 8, 0xbbbbbbbbbbbbbbbb}},
+    },
+    {
+      0x33445566, Access{0x102, 4, 0xdeadbeef},
+      {Access{0x100, 8, 0x1122334455667788}},
+    },
   };
   // clang-format on
   for (auto& test : tests) {

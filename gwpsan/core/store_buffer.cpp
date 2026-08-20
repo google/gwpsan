@@ -26,11 +26,21 @@ uptr StoreBuffer::Forward(Addr addr, ByteSize size, uptr val) {
   size = min(size, Sizeof(val));
   for (uptr i = 0; i < buffer_.size(); i++) {
     const auto& store = buffer_[(pos_ + i) % buffer_.size()];
-    auto off = store.addr - addr;
-    if (off >= size)
-      continue;
-    auto n = min(store.size, size - off);
-    internal_memcpy(reinterpret_cast<char*>(&val) + Bytes(off), &store.val.val,
+    const auto store_end = store.addr + store.size;
+    const auto load_end = addr + size;
+    // Note: we can't subtract store.addr from addr directly because both are
+    // unsigned and a store that starts before the load would underflow.
+    const auto overlap_start = max(store.addr, addr);
+    if (overlap_start >= min(store_end, load_end))
+      continue;  // no overlap
+    // Byte offsets of the overlapping part relative to the start of the
+    // load value and of the store value.
+    const auto load_off = overlap_start - addr;
+    const auto store_off = overlap_start - store.addr;
+    const auto n = min(store_end, load_end) - overlap_start;
+    internal_memcpy(reinterpret_cast<char*>(&val) + Bytes(load_off),
+                    reinterpret_cast<const char*>(&store.val.val) +
+                        Bytes(store_off),
                     Bytes(n));
   }
   return val;
