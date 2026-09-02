@@ -36,7 +36,8 @@ SAN_DECLARE_INTERCEPTOR(int, pthread_create, pthread_t* thread,
 namespace gwpsan {
 namespace {
 
-int pthread_attr_copy_impl(pthread_attr_t* dst, const pthread_attr_t* src) {
+SAN_NOINSTR int pthread_attr_copy_impl(pthread_attr_t* dst,
+                                       const pthread_attr_t* src) {
   // Copy all attributes from src to dst.
   // This is potentially problematic b/c new portable or non-portable
   // attributes may be added and we won't copy them. So we use this function

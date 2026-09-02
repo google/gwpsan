@@ -80,7 +80,7 @@
 // implementation, check if ___interceptor_func is non-null, and if so call it
 // instead (forwarding to compiler-rt sanitizer).
 #define SAN_DECLARE_INTERCEPTOR(ret_type, func, ...)                      \
-  SAN_INTERFACE ret_type __interceptor_##func(__VA_ARGS__);               \
+  SAN_INTERFACE SAN_NOINSTR ret_type __interceptor_##func(__VA_ARGS__);   \
   extern "C" SAN_WEAK_IMPORT ret_type ___interceptor_##func(__VA_ARGS__); \
   SAN_INTERFACE SAN_WEAK_DEFAULT ret_type func(__VA_ARGS__)               \
       SAN_ALIAS(__interceptor_##func)
@@ -97,7 +97,8 @@
   __attribute__((no_sanitize("thread")))                       \
   __attribute__((no_sanitize("memory")))                       \
   __attribute__((no_sanitize("undefined")))                    \
-  __attribute__((no_sanitize("coverage")))
+  __attribute__((no_sanitize("coverage")))                     \
+  __attribute__((no_sanitize("cfi")))
 
 // Use this only where SAN_NOINSTR does not work. In particular, MSan still
 // emits instrumentation in few cases with no_sanitize to avoid false positives.

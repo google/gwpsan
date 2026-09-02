@@ -55,8 +55,8 @@ sigaction_t resolve_sigaction() {
   return ResolveLibcSigaction();
 }
 
-int real_sigaction(int sig, const struct sigaction* act,
-                   struct sigaction* old) {
+SAN_NOINSTR int real_sigaction(int sig, const struct sigaction* act,
+                               struct sigaction* old) {
   static auto real = resolve_sigaction();
   return real(sig, act, old);
 }
@@ -71,7 +71,8 @@ Result<int> Sigaction(int sig, const struct sigaction* act,
 }
 
 template <int kSig>
-void SignalListenerBase<kSig>::Forward(int sig, siginfo_t* info, void* uctx) {
+SAN_NOINSTR void SignalListenerBase<kSig>::Forward(int sig, siginfo_t* info,
+                                                   void* uctx) {
   const auto chain_act = chain_act_.Read();
   if (chain_act->sa_handler == SIG_IGN) {
     // Ignore.
