@@ -1031,7 +1031,7 @@ const Test tests[] = {
     {[kX0] = 11, [kX1] = 22},
     {[kX0] = 0, [kX1] = 0}},
   {"add %q16 %q16 $0x02 -> %q7", 0x4eb08607, 0,
-    {[kQ0 + 16 + kVectorRegWords] = 0x11, [kQ0 + 16 + kVectorRegWords + 1] = 0x22}},
+    {[kQ0 + 16 * kVectorRegWords] = 0x11, [kQ0 + 16 * kVectorRegWords + 1] = 0x22}},
   {"cas x10, x9, [x8]", 0xc8aa7d09, 0,
     {[kX10] = 0x1234, [kX9] = 0x5678, [kX8] = IE::kDataAddr}},
   // TODO(dvyukov): these 2 episodically crash with SIGSEGV for unknown reasons.

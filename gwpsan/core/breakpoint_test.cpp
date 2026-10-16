@@ -294,10 +294,18 @@ TEST_F(BreakpointTest, Spawn) {
     char* const envp[] = {nullptr};
     ASSERT_TRUE(!posix_spawnp(&pid, argv[0], nullptr, nullptr, argv, envp));
     int wstatus;
-    while (pid != waitpid(pid, &wstatus, 0)) {}
+    int res;
+    while ((res = waitpid(pid, &wstatus, 0)) != pid) {
+      if (res < 0) {
+        if (errno == EINTR) continue;
+        ASSERT_EQ(res, pid);
+      }
+    }
     ASSERT_TRUE(WIFEXITED(wstatus));
     ASSERT_EQ(WEXITSTATUS(wstatus), 0);
+    bps_[0].Disable();
   }
+  bps_[0].Close();
 }
 
 }  // namespace
