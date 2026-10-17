@@ -60,8 +60,16 @@ class BreakpointTest : public testing::Test,
   // Constructed last and destroyed first.
   ScopedSignalHandler scoped_handler =
       set_on_signal([this](const siginfo_t& siginfo) {
-        if (ignore_all_)
+        if (ignore_all_) {
+          // See the arm64 work-around below: the breakpoint must be disabled
+          // before returning from the handler, otherwise the access re-traps
+          // forever.
+          if (GWPSAN_ARM64) {
+            for (auto& bp : bps_)
+              bp.Disable();
+          }
           return;
+        }
         EXPECT_NE(expected_bp_, nullptr);
         const auto minfo = Breakpoint::ExtractMatchInfo(SIGTRAP, siginfo);
         EXPECT_TRUE(expected_bp_->Match(minfo));
