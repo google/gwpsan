@@ -101,8 +101,10 @@ const char* IsIncompatible() {
   // A seccomp filter is likely to prohibit calls we need.
   // Notably we need perf_event_open for tsan and sched_get_priority_min
   // for uar (via pthread_getattr_np).
-  if (IsSeccompEnabled())
-    return "seccomp filter is enabled";
+  if (IsSeccompEnabled()) {
+    bool sandboxed = true;
+    if (sandboxed) return "seccomp filter is enabled";
+  }
 
   return nullptr;
 }
