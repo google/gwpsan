@@ -51,8 +51,18 @@ extern "C" SAN_WEAK_IMPORT void __asan_memmove();
 extern "C" SAN_WEAK_IMPORT void __msan_memset();
 extern "C" SAN_WEAK_IMPORT void __msan_memcpy();
 extern "C" SAN_WEAK_IMPORT void __msan_memmove();
-// It's not possible to take memchr address because of strange overloads.
-void memchr_alias() asm("memchr");
+// It's not possible to take memchr address because of strange overloads, and
+// declaring it as a function causes ld.lld -z kcfi-trampolines to emit a local
+// trampoline instead of the real memchr address.
+extern const char memchr_alias[] asm("memchr");
+// TCMalloc aliases the nothrow delete overloads to non-nothrow implementations,
+// so taking their C++ function pointers causes KCFI typeid mismatches.
+extern const char delete_nothrow_sym[] asm("_ZdlPvRKSt9nothrow_t");
+extern const char delete_aligned_nothrow_sym[] asm(
+    "_ZdlPvSt11align_val_tRKSt9nothrow_t");
+extern const char delete_array_nothrow_sym[] asm("_ZdaPvRKSt9nothrow_t");
+extern const char delete_array_aligned_nothrow_sym[] asm(
+    "_ZdaPvSt11align_val_tRKSt9nothrow_t");
 
 // In Asan opt build code that calls free() somehow ends up calling
 // __interceptor_free() instead. This happens on KnownFunctions.IsFreePC test,
@@ -123,19 +133,14 @@ bool IsFreePC(const CPUContext& ctx, uptr& ptr, uptr& size) {
   ptr = ctx.reg(kArgRegs[0]).val;
   size = 0;
   const uptr pc = ctx.reg(kPC).val;
-  if (Match(
-          pc, ::free, __interceptor_free,
-          static_cast<void (*)(void*)>(&operator delete),
-          static_cast<void (*)(void*, const std::nothrow_t&)>(&operator delete),
-          static_cast<void (*)(void*, std::align_val_t)>(&operator delete),
-          static_cast<void (*)(void*, std::align_val_t, const std::nothrow_t&)>(
-              &operator delete),
-          static_cast<void (*)(void*)>(&operator delete[]),
-          static_cast<void (*)(void*, const std::nothrow_t&)>(
-              &operator delete[]),
-          static_cast<void (*)(void*, std::align_val_t)>(&operator delete[]),
-          static_cast<void (*)(void*, std::align_val_t, const std::nothrow_t&)>(
-              &operator delete[]))) {
+  if (Match(pc, ::free, __interceptor_free,
+            static_cast<void (*)(void*)>(&operator delete), delete_nothrow_sym,
+            static_cast<void (*)(void*, std::align_val_t)>(&operator delete),
+            delete_aligned_nothrow_sym,
+            static_cast<void (*)(void*)>(&operator delete[]),
+            delete_array_nothrow_sym,
+            static_cast<void (*)(void*, std::align_val_t)>(&operator delete[]),
+            delete_array_aligned_nothrow_sym)) {
   } else if (Match(pc, free_sized
 #if __cpp_sized_deallocation
                    ,

@@ -21,7 +21,7 @@
 #include "gwpsan/base/os.h"
 #include "gwpsan/base/string.h"
 
-SAN_WEAK_IMPORT int main();
+SAN_WEAK_IMPORT extern const char kMainSymbol[] asm("main");
 
 namespace gwpsan {
 namespace {
@@ -115,7 +115,7 @@ bool InitModuleList() {
   bool res = !!ReadFile("/proc/self/maps", {buffer, kBufferSize});
   if (res) {
     uptr me = reinterpret_cast<uptr>(InitModuleList);
-    uptr exe = reinterpret_cast<uptr>(&main);
+    uptr exe = reinterpret_cast<uptr>(&kMainSymbol);
     modules = internal::ParseModuleList(buffer, me, exe);
   }
   Munmap(buffer, kBufferSize);

@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/base/attributes.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "gwpsan/base/common.h"
@@ -146,7 +147,7 @@ TEST(SemanticMetadata, UAR) {
   EXPECT_FALSE(IsUARFunctionStart(uar_func + 1));
 }
 
-Func GetFunc(void* lib, const char* name) {
+ABSL_ATTRIBUTE_NO_SANITIZE_CFI Func GetFunc(void* lib, const char* name) {
   uptr fn = reinterpret_cast<uptr>(dlsym(lib, name));
   EXPECT_NE(fn, 0) << name;
   uptr end = reinterpret_cast<uptr (*)()>(fn)();
